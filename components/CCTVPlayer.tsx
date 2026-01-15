@@ -353,7 +353,7 @@ export default function CCTVPlayer({ streamName }: { streamName: string }) {
       setLoading(true);
       setError(null);
       
-      const streamUrl = `http://${window.location.hostname}:3001/cctv_${streamName}/index.m3u8`;
+      const streamUrl = `/stream-proxy/cctv_${streamName}/index.m3u8`;
       console.log("🎥 Loading HLS from:", streamUrl);
 
       if (Hls.isSupported()) {
