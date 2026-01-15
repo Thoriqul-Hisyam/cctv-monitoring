@@ -3,6 +3,7 @@ import { spawn } from "child_process";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import http from "http";
 
 // ES Module __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -12,7 +13,8 @@ const prisma = new PrismaClient();
 const activeStreams = new Map();
 
 // Configuration
-const HLS_DIR = path.join(__dirname, "../public/stream");
+const HLS_DIR = path.join(__dirname, "../streams");
+const PORT = 3001;
 const SEGMENT_DURATION = 2; // Duration of each segment in seconds
 const PLAYLIST_SIZE = 5; // Number of segments to keep in the playlist
 
@@ -20,6 +22,60 @@ const PLAYLIST_SIZE = 5; // Number of segments to keep in the playlist
 if (!fs.existsSync(HLS_DIR)) {
     fs.mkdirSync(HLS_DIR, { recursive: true });
 }
+
+// Simple HTTP server to serve the streams
+
+const server = http.createServer((req, res) => {
+    // Add CORS headers
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "*");
+
+    if (req.method === "OPTIONS") {
+        res.writeHead(204);
+        res.end();
+        return;
+    }
+
+    const filePath = path.join(HLS_DIR, req.url);
+
+    // Basic security: ensure the path is within HLS_DIR
+    const resolvedPath = path.resolve(filePath);
+    if (!resolvedPath.startsWith(path.resolve(HLS_DIR))) {
+        res.writeHead(403);
+        res.end("Forbidden");
+        return;
+    }
+
+    fs.access(filePath, fs.constants.F_OK, (err) => {
+        if (err) {
+            res.writeHead(404);
+            res.end("Not Found");
+            return;
+        }
+
+        const ext = path.extname(filePath);
+        let contentType = "application/octet-stream";
+        let cacheControl = "no-cache, no-store, must-revalidate"; // Default for index.m3u8
+
+        if (ext === ".m3u8") {
+            contentType = "application/vnd.apple.mpegurl";
+        } else if (ext === ".ts") {
+            contentType = "video/MP2T";
+            cacheControl = "no-cache, no-store, must-revalidate"; // Disable cache to prevent "maju mundur" issue
+        }
+
+        res.writeHead(200, {
+            "Content-Type": contentType,
+            "Cache-Control": cacheControl
+        });
+        fs.createReadStream(filePath).pipe(res);
+    });
+});
+
+server.listen(PORT, "0.0.0.0", () => {
+    console.log(`📡 Stream server listening on http://0.0.0.0:${PORT}`);
+});
 
 async function startStream(cctv) {
     if (activeStreams.has(cctv.id)) {
@@ -51,29 +107,32 @@ async function startStream(cctv) {
     console.log(`   URL: ${rtspUrl}`);
 
     const ffmpegArgs = [
+        "-nostdin",
         "-rtsp_transport", "tcp",
-        "-probesize", "10M",
-        "-analyzeduration", "10M",
-        "-fflags", "+genpts+discardcorrupt", // Generate pts if missing and discard corrupt packets
-        "-err_detect", "ignore_err", // Ignore decoding errors
+        "-loglevel", "warning", // Back to warning for less noise
         "-i", rtspUrl,
         "-c:v", "libx264",
-        "-preset", "veryfast",
+        "-preset", "ultrafast",
         "-tune", "zerolatency",
+        "-crf", "28", // Lower quality/higher compression for smaller files
+        "-maxrate", "2M", // Limit bitrate to 2Mbps
+        "-bufsize", "4M",
+        "-g", "50",
+        "-sc_threshold", "0",
         "-profile:v", "baseline",
         "-bf", "0",
         "-r", "25",
-        "-vf", "setpts=N/25/TB", // 🔥 FORCE rewrite video timestamps based on frame count (Fixes looping)
+        "-vf", "scale=-1:720,setpts=N/25/TB", // Scale to 720p
         "-pix_fmt", "yuv420p",
         "-c:a", "aac",
         "-ac", "2",
         "-ar", "44100",
-        "-af", "asetpts=N/SR/TB", // 🔥 FORCE rewrite audio timestamps
+        "-af", "asetpts=N/SR/TB",
         "-f", "hls",
-        "-hls_time", "2",
-        "-hls_list_size", "4", // Slightly larger buffer
-        "-hls_flags", "delete_segments+omit_endlist",
-        "-hls_segment_filename", path.join(streamDir, "segment_%03d.ts"),
+        "-hls_time", "5",
+        "-hls_list_size", "72", // 72 segments * 5s = 360s (6 minutes buffer)
+        "-hls_flags", "delete_segments+omit_endlist+independent_segments",
+        "-hls_segment_filename", path.join(streamDir, "segment_%d.ts"), // Use %d for larger counter
         path.join(streamDir, "index.m3u8")
     ];
 
@@ -84,8 +143,9 @@ async function startStream(cctv) {
     activeStreams.set(cctv.id, ffmpeg);
 
     ffmpeg.stderr.on("data", (data) => {
-        // Log error output to debug crash
-        console.log(`[FFmpeg ${cctv.id}] ${data.toString()}`);
+        const output = data.toString();
+        // Log all FFmpeg output for now to see what's wrong during startup
+        console.log(`[FFmpeg ${cctv.id}] ${output.trim()}`);
     });
 
     ffmpeg.on("close", (code) => {
@@ -151,6 +211,7 @@ process.on("SIGINT", () => {
     for (const [id] of activeStreams) {
         stopStream(id);
     }
+    server.close();
     prisma.$disconnect();
     process.exit();
 });

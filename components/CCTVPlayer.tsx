@@ -353,16 +353,25 @@ export default function CCTVPlayer({ streamName }: { streamName: string }) {
       setLoading(true);
       setError(null);
       
-      const streamUrl = `/stream/cctv_${streamName}/index.m3u8`;
+      const streamUrl = `http://${window.location.hostname}:3001/cctv_${streamName}/index.m3u8`;
       console.log("🎥 Loading HLS from:", streamUrl);
 
       if (Hls.isSupported()) {
         hls = new Hls({
           enableWorker: true,
-          lowLatencyMode: true, // Re-enable low latency for live feel
-          backBufferLength: 90,
-          liveSyncDurationCount: 3, // Sync close to live edge
+          lowLatencyMode: false, // Delay requested, disable low latency
+          backBufferLength: 360, // 6 minutes back buffer
+          liveSyncDuration: 300, // 5 minutes (300 seconds) delay constant
+          liveMaxLatencyDuration: 360, // Max 6 minutes
           debug: false,
+          // Advanced recovery config
+          manifestLoadingMaxRetry: Infinity,
+          levelLoadingMaxRetry: Infinity,
+          fragLoadingMaxRetry: 10,
+          nudgeMaxRetry: 5,
+          nudgeOffset: 0.1,
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
         });
 
         hlsRef.current = hls;
@@ -372,31 +381,42 @@ export default function CCTVPlayer({ streamName }: { streamName: string }) {
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           video.play().catch((e) => {
              console.error("Play failed", e);
-             // If play fails (e.g. unmuted blocked), fallback to muted
              setIsMuted(true);
           });
         });
 
         hls.on(Hls.Events.FRAG_LOADED, () => {
             setLoading(false);
+            setError(null);
         });
 
         hls.on(Hls.Events.ERROR, (event, data) => {
+          console.warn(`HLS Error: ${data.details}`, data);
+          
           if (data.fatal) {
             switch (data.type) {
               case Hls.ErrorTypes.NETWORK_ERROR:
-                // Try to recover network error
-                 if (loading) setError("Connecting...");
+                console.log("Fatal network error, trying to recover...");
                 hls?.startLoad();
                 break;
               case Hls.ErrorTypes.MEDIA_ERROR:
+                console.log("Fatal media error, trying to recover...");
                 hls?.recoverMediaError();
                 break;
               default:
+                console.log("Unrecoverable error, destroying and restarting...");
                 hls?.destroy();
-                // Don't show fatal error immediately, maybe retry?
+                setTimeout(() => startHLS(), 1000);
                 break;
             }
+          } else {
+             // Non-fatal errors
+             if (data.details === 'bufferStalledError') {
+                 console.log("Buffer stalled, nudging video...");
+                 // Small nudge to help stuck buffer
+                 if (video.paused) video.play().catch(() => {});
+                 else video.currentTime += 0.1;
+             }
           }
         });
       } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
