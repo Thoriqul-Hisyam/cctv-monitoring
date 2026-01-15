@@ -1,0 +1,48 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  role      String   @default("admin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime 
+}
+
+model Cctv {
+  id        Int    @id @default(autoincrement())
+  name      String
+
+  rt        String
+  rw        String
+  wilayah   String
+  kecamatan String
+  kota      String
+
+  ipAddress String
+  port      Int     @default(554)
+  username  String?
+  password  String?
+
+  channel   Int     @default(102) // 101 HD | 102 SD
+  streamUrl String? // RTSP / HTTP stream (optional, bisa auto-generate)
+  hlsUrl    String?
+  isActive  Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
