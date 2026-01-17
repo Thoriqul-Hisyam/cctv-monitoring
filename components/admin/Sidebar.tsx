@@ -27,13 +27,21 @@ export default function Sidebar({ open }: { open: boolean }) {
     <aside
       className={`${
         open ? "w-64" : "w-20"
-      } transition-all bg-gray-900 text-white flex flex-col`}
+      } transition-all duration-300 bg-slate-950 text-slate-300 flex flex-col border-r border-slate-800 shadow-2xl`}
     >
-      <div className="p-4 border-b border-gray-800">
-        {open && <span className="ml-3 text-xl font-bold">CCTV MINS</span>}
+      <div className="p-6 border-b border-slate-900 flex items-center gap-3 h-16">
+        <div className="min-w-[32px] w-8 h-8 bg-blue-600 rounded-lg shadow-lg shadow-blue-900/20 flex items-center justify-center shrink-0">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+        </div>
+        {open && (
+            <div className="overflow-hidden whitespace-nowrap">
+                <span className="text-lg font-bold text-white tracking-tight">MINS</span>
+                <span className="ml-1 text-lg font-light text-slate-400">CCTV</span>
+            </div>
+        )}
       </div>
 
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto overflow-x-hidden">
         {menuItems.map((item) => {
           const Icon = item.icon;
 
@@ -46,16 +54,34 @@ export default function Sidebar({ open }: { open: boolean }) {
             <button
               key={item.id}
               onClick={() => router.push(item.path)}
-              className={`w-full flex items-center px-4 py-3 rounded-lg ${
-                isActive ? "bg-blue-600" : "text-gray-400 hover:bg-gray-800"
+              className={`w-full flex items-center px-4 py-3 rounded-xl transition-all group ${
+                isActive 
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" 
+                  : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
               }`}
             >
-              <Icon className="w-5 h-5" />
-              {open && <span className="ml-3">{item.label}</span>}
+              <Icon className={`w-5 h-5 shrink-0 ${isActive ? "text-white" : "group-hover:text-blue-400 transition-colors"}`} />
+              {open && (
+                  <span className="ml-3 font-semibold text-sm whitespace-nowrap">
+                      {item.label}
+                  </span>
+              )}
             </button>
           );
         })}
       </nav>
+
+      {open && (
+          <div className="p-6 border-t border-slate-900">
+              <div className="p-3 bg-slate-900/50 rounded-xl border border-slate-800">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Status Sistem</p>
+                  <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                      <span className="text-xs font-semibold text-slate-300">Online & Stabil</span>
+                  </div>
+              </div>
+          </div>
+      )}
     </aside>
   );
 }

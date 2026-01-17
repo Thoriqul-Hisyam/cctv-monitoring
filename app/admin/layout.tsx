@@ -1,4 +1,7 @@
 import { ReactNode } from "react";
+
+export const dynamic = "force-dynamic";
+
 import { getUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import AdminShell from "@/components/admin/AdminShell";

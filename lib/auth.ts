@@ -1,5 +1,28 @@
 "use server";
 
+export type Session = {
+  sub: string | number;
+  username: string;
+  role: string;
+};
+
+export async function readSession(): Promise<Session | null> {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth-token")?.value;
+    if (!token) return null;
+
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    return {
+      sub: decoded.userId,
+      username: decoded.username,
+      role: decoded.role,
+    };
+  } catch {
+    return null;
+  }
+}
+
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
