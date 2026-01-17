@@ -354,7 +354,6 @@ export default function CCTVPlayer({ streamName }: { streamName: string }) {
       setError(null);
       
       const streamUrl = `/stream-proxy/cctv_${streamName}/index.m3u8`;
-      console.log("🎥 Loading HLS from:", streamUrl);
 
       if (Hls.isSupported()) {
         hls = new Hls({
@@ -391,7 +390,6 @@ export default function CCTVPlayer({ streamName }: { streamName: string }) {
         });
 
         hls.on(Hls.Events.ERROR, (event, data) => {
-          console.warn(`HLS Error: ${data.details}`, data);
           
           if (data.fatal) {
             switch (data.type) {
@@ -412,7 +410,6 @@ export default function CCTVPlayer({ streamName }: { streamName: string }) {
           } else {
              // Non-fatal errors
              if (data.details === 'bufferStalledError') {
-                 console.log("Buffer stalled, nudging video...");
                  // Small nudge to help stuck buffer
                  if (video.paused) video.play().catch(() => {});
                  else video.currentTime += 0.1;
