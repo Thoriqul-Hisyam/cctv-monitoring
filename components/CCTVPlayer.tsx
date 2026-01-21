@@ -100,7 +100,7 @@ export default function CCTVPlayer({ streamName }: { streamName: string }) {
                     video.play().catch(() => {});
                  }
              }
-             if (data.details === 'levelLoadingTimeOutError' || data.details === 'manifestLoadingTimeOutError') {
+             if (data.details === 'levelLoadTimeOut' || data.details === 'manifestLoadTimeOut') {
                 console.warn("Loading timeout, retrying...");
                 hls?.startLoad();
              }
