@@ -62,14 +62,13 @@ export default async function Home() {
                    <div className="flex items-center gap-3 mb-5">
                         <div className="w-2 h-2 rounded-full bg-blue-600"></div>
                         <h3 className="text-lg font-bold text-slate-800 group-hover/kecamatan:text-blue-600 transition-colors">
-                            Kecamatan {kecamatan}
+                            {kecamatan}
                         </h3>
                         <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">
                             {locationCctvs.length} UNIT
                         </span>
                    </div>
 
-                  {/* Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {locationCctvs.map((cctv) => (
                       <CCTVCard

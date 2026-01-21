@@ -14,9 +14,7 @@ export default function CCTVCard({
       {/* Header Overlay */}
       <div className="absolute top-0 left-0 right-0 z-10 p-5 bg-gradient-to-b from-white/95 to-transparent opacity-100 transition-opacity pointer-events-none">
         <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-900 tracking-tight truncate pr-4">
-                {title}
-            </h2>
+           
              <div className="flex items-center gap-1.5 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75"></span>
@@ -40,9 +38,16 @@ export default function CCTVCard({
           </div>
         )}
       </div>
+
+      {/* Info Container */}
+      <div className="p-4 bg-white">
+        <h4 className="text-sm font-bold text-slate-900 line-clamp-1 group-hover:text-blue-600 transition-colors">
+          {title}
+        </h4>
+      </div>
       
       {/* Bottom info strip */}
-      <div className="h-1.5 bg-gradient-to-r from-blue-500 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      <div className="h-1 bg-gradient-to-r from-blue-500 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
     </div>
   );
 }

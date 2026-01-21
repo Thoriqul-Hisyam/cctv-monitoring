@@ -109,30 +109,22 @@ async function startStream(cctv) {
     const ffmpegArgs = [
         "-nostdin",
         "-rtsp_transport", "tcp",
-        "-loglevel", "warning", // Back to warning for less noise
+        "-loglevel", "warning",
         "-i", rtspUrl,
         "-c:v", "libx264",
         "-preset", "ultrafast",
         "-tune", "zerolatency",
-        "-crf", "28", // Lower quality/higher compression for smaller files
-        "-maxrate", "2M", // Limit bitrate to 2Mbps
-        "-bufsize", "4M",
-        "-g", "50",
-        "-sc_threshold", "0",
         "-profile:v", "baseline",
-        "-bf", "0",
-        "-r", "25",
-        "-vf", "scale=-1:720,setpts=N/25/TB", // Scale to 720p
+        "-level", "3.0",
         "-pix_fmt", "yuv420p",
-        "-c:a", "aac",
-        "-ac", "2",
-        "-ar", "44100",
-        "-af", "asetpts=N/SR/TB",
-        "-f", "hls",
-        "-hls_time", "5",
-        "-hls_list_size", "72", // 72 segments * 5s = 360s (6 minutes buffer)
-        "-hls_flags", "delete_segments+omit_endlist+independent_segments",
-        "-hls_segment_filename", path.join(streamDir, "segment_%d.ts"), // Use %d for larger counter
+        "-r", "20", // Lower framerate for stability
+        "-g", "40", // Keyframe every 2 seconds
+        "-vf", "scale=-2:480",
+        "-an", // Disable audio to prevent "Queue input is backward in time" errors
+        "-hls_time", "2",
+        "-hls_list_size", "180", // 180 segments * 2s = 360s (6 minutes buffer) to support 5-min delay
+        "-hls_flags", "delete_segments+independent_segments",
+        "-hls_segment_filename", path.join(streamDir, "segment_%d.ts"),
         path.join(streamDir, "index.m3u8")
     ];
 
@@ -189,9 +181,13 @@ async function syncStreams() {
             }
         }
 
-        // Start new streams
+        // Start new streams sequentially with a delay to avoid CPU/Network spikes
+        let delay = 0;
         for (const cctv of cctvs) {
-            startStream(cctv);
+            setTimeout(() => {
+                startStream(cctv);
+            }, delay);
+            delay += 1500; // 1.5 second delay between streams
         }
     } catch (error) {
         console.error("❌ Sync error:", error);
