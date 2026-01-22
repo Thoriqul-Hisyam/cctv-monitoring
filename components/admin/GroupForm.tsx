@@ -8,9 +8,10 @@ import { Building2, AlignLeft, Fingerprint, Globe, CheckCircle } from "lucide-re
 type GroupFormProps = {
   mode: "create" | "edit";
   data?: any;
+  isSettings?: boolean;
 };
 
-export default function GroupForm({ mode, data }: GroupFormProps) {
+export default function GroupForm({ mode, data, isSettings = false }: GroupFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -25,8 +26,16 @@ export default function GroupForm({ mode, data }: GroupFormProps) {
             } else {
                 await updateGroup(data.id, formData);
             }
-            router.push("/admin/groups");
-            router.refresh();
+            
+            if (isSettings) {
+                // If in settings, just refresh to show updated data (and maybe show success toast if we had one)
+                // We don't want to redirect to /admin/groups
+                router.refresh();
+                alert("Pengaturan berhasil disimpan"); // Temporary feedback
+            } else {
+                router.push("/admin/groups");
+                router.refresh();
+            }
         } catch (err: any) {
             setError(err.message);
         }
@@ -86,7 +95,7 @@ export default function GroupForm({ mode, data }: GroupFormProps) {
                             value={slug}
                             onChange={(e) => setSlug(e.target.value)}
                             required
-                            disabled={mode === 'edit'} // Slug immutable on edit
+                            disabled={mode === 'edit' && data?.slug === 'default'} // Only disable if it's the default group
                             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm font-medium disabled:bg-slate-50 disabled:text-slate-500"
                             placeholder="kantor-pusat"
                         />

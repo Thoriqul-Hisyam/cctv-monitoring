@@ -7,10 +7,12 @@ import Header from "@/components/admin/Header";
 export default function AdminShell({
   children,
   isSystemSuperAdmin = false,
+  isGroupSuperAdmin = false,
   canManageUsers = false,
 }: {
   children: React.ReactNode;
   isSystemSuperAdmin?: boolean;
+  isGroupSuperAdmin?: boolean;
   canManageUsers?: boolean;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -20,6 +22,7 @@ export default function AdminShell({
       <Sidebar 
           open={sidebarOpen} 
           isSystemSuperAdmin={isSystemSuperAdmin} 
+          isGroupSuperAdmin={isGroupSuperAdmin}
           canManageUsers={canManageUsers}
       />
 

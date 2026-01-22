@@ -20,12 +20,13 @@ const menuItems = [
   },
 ];
 
-export default function Sidebar({ open, isSystemSuperAdmin = false, canManageUsers = false }: { open: boolean, isSystemSuperAdmin?: boolean, canManageUsers?: boolean }) {
+export default function Sidebar({ open, isSystemSuperAdmin = false, isGroupSuperAdmin = false, canManageUsers = false }: { open: boolean, isSystemSuperAdmin?: boolean, isGroupSuperAdmin?: boolean, canManageUsers?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
 
   const filteredMenuItems = menuItems.filter(item => {
       if (item.id === "groups" && !isSystemSuperAdmin) return false;
+      if (item.id === "settings" && !isSystemSuperAdmin && !isGroupSuperAdmin) return false;
       if (item.id === "users" && !canManageUsers) return false;
       return true;
   });

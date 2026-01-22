@@ -23,6 +23,11 @@ export default async function AdminLayout({
       m.roleName.toLowerCase().includes('super')
   );
 
+  // Check if Group Super Admin (Super Admin of ANY group)
+  const isGroupSuperAdmin = user.memberships.some(m => 
+      m.roleName.toLowerCase().includes('super')
+  );
+
   // Check if User manager (System Super OR Any Group Admin) - Operator/Viewer CANNOT manage users
   const canManageUsers = isSystemSuperAdmin || user.memberships.some(m => 
       m.roleName.toLowerCase().includes('admin')
@@ -33,6 +38,7 @@ export default async function AdminLayout({
       <body className="bg-gray-100">
         <AdminShell 
             isSystemSuperAdmin={isSystemSuperAdmin}
+            isGroupSuperAdmin={isGroupSuperAdmin}
             canManageUsers={canManageUsers}
         >
             {children}

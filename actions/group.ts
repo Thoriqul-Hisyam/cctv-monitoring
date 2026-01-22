@@ -175,19 +175,53 @@ export async function updateGroup(id: number, formData: FormData) {
     await requireGroupAdmin(id);
 
     const name = formData.get("name") as string;
+    const slug = formData.get("slug") as string;
     const description = formData.get("description") as string;
     const isPublic = formData.get("isPublic") === "on";
 
+    // 1. Get current group data
+    const currentGroup = await prisma.group.findUnique({
+        where: { id }
+    });
+
+    if (!currentGroup) {
+        throw new Error("Group not found");
+    }
+
+    // 2. Prepare update data
+    const updateData: any = {
+        name,
+        description,
+        isPublic
+    };
+
+    // 3. Handle Slug Update
+    if (slug && slug !== currentGroup.slug) {
+        // Prevent changing default group's slug
+        if (currentGroup.slug === 'default') {
+             // We just ignore the slug change or throw error. 
+             // Throwing error is safer to let user know why it didn't change if they tried.
+             // But for UX, if the form was hacked to enable it, we just ignore it.
+             // Let's silently ignore to prevent breaking if client sent it.
+        } else {
+             // Check uniqueness
+             const existing = await prisma.group.findUnique({
+                 where: { slug }
+             });
+             if (existing) {
+                 throw new Error("Slug already taken");
+             }
+             updateData.slug = slug;
+        }
+    }
+
     await prisma.group.update({
         where: { id },
-        data: {
-            name,
-            description,
-            isPublic
-        }
+        data: updateData
     });
 
     revalidatePath("/admin/groups");
+    revalidatePath("/admin/settings"); // Revalidate settings page too
 }
 
 /* ======================
