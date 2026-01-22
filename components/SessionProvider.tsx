@@ -4,7 +4,8 @@ import type { Session } from "@/lib/auth"; // tipe dari server
 
 export type AppSession = {
   username: string;
-  role: string;
+  name: string | null;
+  email: string | null;
 } | null;
 
 const SessionCtx = createContext<AppSession>(null);
@@ -28,6 +29,7 @@ export function mapServerSession(session: Session | null): AppSession {
   if (!session) return null;
   return {
     username: session.username,
-    role: session.role,
+    name: session.name,
+    email: session.email,
   };
 }

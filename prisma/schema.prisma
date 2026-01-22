@@ -1,48 +1,165 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+generator client {
+  provider = "prisma-client-js"
+}
 
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
+// ============================================
+// USER MANAGEMENT & ACCESS CONTROL MODELS
+// ============================================
 
 model User {
   id        Int      @id @default(autoincrement())
+  email     String?  @unique
   username  String   @unique
   password  String
-  role      String   @default("admin")
-  createdAt DateTime @default(now())
-  updatedAt DateTime 
-}
-
-model Cctv {
-  id        Int    @id @default(autoincrement())
-  name      String
-
-  rt        String
-  rw        String
-  wilayah   String
-  kecamatan String
-  kota      String
-
-  ipAddress String
-  port      Int     @default(554)
-  username  String?
-  password  String?
-
-  channel   Int     @default(102) // 101 HD | 102 SD
-  streamUrl String? // RTSP / HTTP stream (optional, bisa auto-generate)
-  hlsUrl    String?
-  isActive  Boolean @default(true)
-
+  name      String?
+  avatar    String?
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Relations
+  memberships  UserGroup[]
+  createdCctvs Cctv[]      @relation("CreatedBy")
+
+  @@map("user")
+}
+
+model Group {
+  id          Int      @id @default(autoincrement())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  logo        String?
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  members UserGroup[]
+  roles   Role[]
+  cctvs   Cctv[]
+
+  @@map("group")
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  groupId     Int
+  name        String
+  slug        String
+  description String?  @db.Text
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  group       Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  permissions RolePermission[]
+  userGroups  UserGroup[]
+
+  @@unique([groupId, slug])
+  @@index([groupId])
+  @@map("role")
+}
+
+model Permission {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  slug        String   @unique
+  description String?  @db.Text
+  category    String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  roles RolePermission[]
+
+  @@map("permission")
+}
+
+model RolePermission {
+  id           Int      @id @default(autoincrement())
+  roleId       Int
+  permissionId Int
+  createdAt    DateTime @default(now())
+
+  // Relations
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permission")
+}
+
+model UserGroup {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  groupId   Int
+  roleId    Int
+  joinedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  role  Role  @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, groupId])
+  @@index([userId])
+  @@index([groupId])
+  @@index([roleId])
+  @@map("user_group")
+}
+
+// ============================================
+// CCTV MODEL
+// ============================================
+
+model Cctv {
+  id          Int      @id @default(autoincrement())
+  groupId     Int?
+  createdById Int?
+  name        String
+  slug        String   @unique @default(uuid())
+  description String?  @db.Text
+  
+  // Location Info (legacy fields maintained)
+  rt          String?
+  rw          String?
+  wilayah     String?
+  kecamatan   String?
+  kota        String?
+  location    String?  // Combined location string
+  
+  // Connection Info
+  ipAddress   String
+  port        Int      @default(554)
+  username    String?
+  password    String?
+  channel     Int      @default(102)
+  streamUrl   String?
+  hlsUrl      String?
+  
+  // Status
+  isPublic    Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  group     Group? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  createdBy User?  @relation("CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([groupId])
+  @@index([createdById])
+  @@index([isPublic])
+  @@index([isActive])
+  @@map("cctv")
 }

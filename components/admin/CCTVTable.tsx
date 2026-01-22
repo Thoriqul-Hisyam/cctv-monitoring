@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit, Trash2, Camera } from "lucide-react";
+import { Edit, Trash2, Camera, Link as LinkIcon, Lock, Globe } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { deleteCctv } from "@/actions/cctv";
@@ -8,15 +8,20 @@ import { deleteCctv } from "@/actions/cctv";
 type CCTV = {
   id: number;
   name: string;
-  rt: string;
-  rw: string;
-  wilayah: string;
-  kecamatan: string;
-  kota: string;
+  rt: string | null;
+  rw: string | null;
+  wilayah: string | null;
+  kecamatan: string | null;
+  kota: string | null;
   isActive: boolean;
+  isPublic: boolean;
+  slug?: string | null;
+  groupId?: number | null;
+  createdById?: number | null;
+  [key: string]: any; // Allow additional fields
 };
 
-export default function CCTVTable({ data }: { data: CCTV[] }) {
+export default function CCTVTable({ data, canManage }: { data: CCTV[], canManage: boolean }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -37,21 +42,29 @@ export default function CCTVTable({ data }: { data: CCTV[] }) {
     }
   };
 
+  const handleCopyLink = (slug: string) => {
+    const url = `${window.location.origin}/cctv/${slug}`;
+    navigator.clipboard.writeText(url);
+    alert("Share Link copied to clipboard!");
+  };
+
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-visible animate-in fade-in slide-in-from-bottom-2 duration-500">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 gap-4 border-b border-slate-100">
         <div>
             <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Daftar CCTV</h2>
             <p className="text-xs font-medium text-slate-500 mt-1">Kelola data kamera di seluruh wilayah</p>
         </div>
-        <button
-          onClick={() => router.push("/admin/cctv/create")}
-          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all font-bold text-sm active:scale-[0.98]"
-        >
-          <Camera className="w-4 h-4" />
-          <span>Tambah CCTV Baru</span>
-        </button>
+        {canManage && (
+          <button
+            onClick={() => router.push("/admin/cctv/create")}
+            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all font-bold text-sm active:scale-[0.98]"
+          >
+            <Camera className="w-4 h-4" />
+            <span>Tambah CCTV Baru</span>
+          </button>
+        )}
       </div>
 
       {/* Table */}
@@ -60,6 +73,7 @@ export default function CCTVTable({ data }: { data: CCTV[] }) {
             <thead className="bg-slate-50/50 border-b border-slate-100">
             <tr>
                 <th className="px-6 py-4 text-left font-bold text-slate-500 uppercase tracking-widest text-[10px]">Nama Kamera</th>
+                <th className="px-6 py-4 text-left font-bold text-slate-500 uppercase tracking-widest text-[10px]">Organisasi</th>
                 <th className="px-6 py-4 text-center font-bold text-slate-500 uppercase tracking-widest text-[10px]">Alamat (RT/RW)</th>
                 <th className="px-6 py-4 text-center font-bold text-slate-500 uppercase tracking-widest text-[10px]">Wilayah</th>
                 <th className="px-6 py-4 text-center font-bold text-slate-500 uppercase tracking-widest text-[10px]">Status</th>
@@ -70,7 +84,7 @@ export default function CCTVTable({ data }: { data: CCTV[] }) {
             <tbody className="divide-y divide-slate-100">
             {data.length === 0 && (
                 <tr>
-                <td colSpan={5} className="px-6 py-12 text-center">
+                <td colSpan={6} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center justify-center text-slate-400">
                         <Camera className="w-12 h-12 mb-2 opacity-10" />
                         <p className="font-medium">Belum ada data CCTV terdaftar</p>
@@ -87,10 +101,27 @@ export default function CCTVTable({ data }: { data: CCTV[] }) {
                             <Camera className="w-4 h-4" />
                         </div>
                         <div>
-                            <p className="font-bold text-slate-900">{cctv.name}</p>
+                            <p className="font-bold text-slate-900 flex items-center gap-2">
+                                {cctv.name}
+                                {cctv.isPublic ? (
+                                    <span title="Public"><Globe className="w-3 h-3 text-green-500" /></span>
+                                ) : (
+                                    <span title="Private"><Lock className="w-3 h-3 text-slate-400" /></span>
+                                )}
+                            </p>
                             <p className="text-[10px] font-medium text-slate-500">{cctv.kota}</p>
                         </div>
                     </div>
+                </td>
+
+                <td className="px-6 py-4 text-left">
+                    {cctv.group ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider">
+                            {cctv.group.name}
+                        </span>
+                    ) : (
+                         <span className="text-slate-400 text-[10px] italic">No Group</span>
+                    )}
                 </td>
 
                 <td className="px-6 py-4 text-center">
@@ -118,22 +149,37 @@ export default function CCTVTable({ data }: { data: CCTV[] }) {
 
                 <td className="px-6 py-4 text-center">
                     <div className="flex justify-center gap-2">
-                    <button
-                        onClick={() => handleEdit(cctv.id)}
-                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                        title="Edit Data"
-                    >
-                        <Edit size={18} />
-                    </button>
+                    
+                    {cctv.slug && (
+                        <button
+                            onClick={() => handleCopyLink(cctv.slug!)}
+                            className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
+                            title="Copy Share Link"
+                        >
+                            <LinkIcon size={18} />
+                        </button>
+                    )}
 
-                    <button
-                        onClick={() => handleDelete(cctv.id)}
-                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all disabled:opacity-30"
-                        title="Hapus Data"
-                        disabled={isPending}
-                    >
-                        <Trash2 size={18} />
-                    </button>
+                    {canManage && (
+                        <>
+                            <button
+                                onClick={() => handleEdit(cctv.id)}
+                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                title="Edit Data"
+                            >
+                                <Edit size={18} />
+                            </button>
+
+                            <button
+                                onClick={() => handleDelete(cctv.id)}
+                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all disabled:opacity-30"
+                                title="Hapus Data"
+                                disabled={isPending}
+                            >
+                                <Trash2 size={18} />
+                            </button>
+                        </>
+                    )}
                     </div>
                 </td>
                 </tr>

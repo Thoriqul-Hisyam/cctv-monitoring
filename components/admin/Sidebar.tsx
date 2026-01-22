@@ -1,5 +1,5 @@
 "use client";
-import { LayoutDashboard, Camera, Users, Settings } from "lucide-react";
+import { LayoutDashboard, Camera, Users, Settings, Building2 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 
 const menuItems = [
@@ -10,6 +10,7 @@ const menuItems = [
     path: "/admin",
   },
   { id: "cctv", label: "Master CCTV", icon: Camera, path: "/admin/cctv" },
+  { id: "groups", label: "Master Group", icon: Building2, path: "/admin/groups" },
   { id: "users", label: "Master User", icon: Users, path: "/admin/users" },
   {
     id: "settings",
@@ -19,9 +20,15 @@ const menuItems = [
   },
 ];
 
-export default function Sidebar({ open }: { open: boolean }) {
+export default function Sidebar({ open, isSystemSuperAdmin = false, canManageUsers = false }: { open: boolean, isSystemSuperAdmin?: boolean, canManageUsers?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
+
+  const filteredMenuItems = menuItems.filter(item => {
+      if (item.id === "groups" && !isSystemSuperAdmin) return false;
+      if (item.id === "users" && !canManageUsers) return false;
+      return true;
+  });
 
   return (
     <aside
@@ -42,7 +49,7 @@ export default function Sidebar({ open }: { open: boolean }) {
       </div>
 
       <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto overflow-x-hidden">
-        {menuItems.map((item) => {
+        {filteredMenuItems.map((item) => {
           const Icon = item.icon;
 
           const isActive =

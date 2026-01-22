@@ -6,9 +6,11 @@ import { createCctv, updateCctv } from "@/actions/cctv";
 type Props = {
   mode: "create" | "edit";
   data?: any;
+  userRole: string;
+  groups: { id: number; name: string }[];
 };
 
-export default function CctvForm({ mode, data }: Props) {
+export default function CctvForm({ mode, data, userRole, groups }: Props) {
   const [isPending, startTransition] = useTransition();
 
   const action = async (formData: FormData) => {
@@ -102,24 +104,83 @@ export default function CctvForm({ mode, data }: Props) {
       </div>
 
       <hr className="border-gray-200" />
-
-      {/* Status Section */}
-      {/* <div className="space-y-5">
+      
+      {/* Group Selection */}
+      <div className="space-y-5">
         <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-          ⚙️ Status
+            🏢 Organisasi / Grup
         </h3>
+        
+        <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+                Pilih Grup
+            </label>
+            <select
+                name="groupId"
+                defaultValue={data?.groupId ?? ""}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+            >
+                <option value="" disabled>-- Pilih Grup --</option>
+                {groups.map(g => (
+                    <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+                CCTV ini akan menjadi milik grup yang dipilih.
+            </p>
+        </div>
+      </div>
 
-        <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-          <input
-            type="checkbox"
-            name="isActive"
-            value="true"
-            defaultChecked={data?.isActive ?? true}
-            className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
-          />
-          <span className="text-sm font-medium text-gray-900">CCTV Aktif</span>
-        </label>
-      </div> */}
+      <hr className="border-gray-200" />
+
+      {/* Visibility: Only for Admin */}
+      {userRole === "admin" && (
+        <div className="space-y-5">
+          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            👁️ Visibilitas
+          </h3>
+
+          <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+            <input
+              type="checkbox"
+              name="isPublic"
+              defaultChecked={data?.isPublic ?? false}
+              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            />
+            <span className="text-sm font-medium text-gray-900">
+              Tampilkan ke Publik (Landing Page)
+            </span>
+          </label>
+        </div>
+      )}
+
+      {/* Shareable Link (For Everyone) */}
+      {data?.slug && (
+        <div className="space-y-5">
+          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            🔗 Link Berbagi (Shareable Link)
+          </h3>
+          <div className="flex gap-2">
+             <div className="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 font-mono break-all">
+                {typeof window !== 'undefined' ? `${window.location.origin}/cctv/${data.slug}` : `/cctv/${data.slug}`}
+             </div>
+             <button
+               type="button"
+               onClick={() => {
+                   const url = `${window.location.origin}/cctv/${data.slug}`;
+                   navigator.clipboard.writeText(url);
+                   alert("Link disalin!");
+               }}
+               className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-4 rounded-lg transition-colors text-sm"
+             >
+               Salin
+             </button>
+          </div>
+          <p className="text-xs text-gray-500">
+             Gunakan link ini untuk membagikan CCTV kepada orang lain secara spesifik.
+          </p>
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="flex gap-3 pt-4">

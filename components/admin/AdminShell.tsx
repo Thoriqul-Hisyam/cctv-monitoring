@@ -6,14 +6,22 @@ import Header from "@/components/admin/Header";
 
 export default function AdminShell({
   children,
+  isSystemSuperAdmin = false,
+  canManageUsers = false,
 }: {
   children: React.ReactNode;
+  isSystemSuperAdmin?: boolean;
+  canManageUsers?: boolean;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <Sidebar open={sidebarOpen} />
+      <Sidebar 
+          open={sidebarOpen} 
+          isSystemSuperAdmin={isSystemSuperAdmin} 
+          canManageUsers={canManageUsers}
+      />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header

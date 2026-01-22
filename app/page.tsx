@@ -5,7 +5,7 @@ import { type Cctv } from "@prisma/client";
 export const dynamic = "force-dynamic"; // Ensure fresh data
 
 export default async function Home() {
-  const cctvs = await getCctvs();
+  const cctvs = await getCctvs({ publicOnly: true });
 
   // Grouping Logic: Kota -> Kecamatan -> Cctv[]
   const groupedCctvs = cctvs.reduce((acc, cctv) => {
@@ -75,6 +75,7 @@ export default async function Home() {
                         key={cctv.id}
                         title={cctv.name || `CCTV ${cctv.id}`}
                         streamName={String(cctv.id)}
+                        slug={cctv.slug}
                       />
                     ))}
                   </div>
