@@ -1,7 +1,13 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
 import { createCctv, updateCctv, regenerateCctvSlug } from "@/actions/cctv";
+import dynamic from "next/dynamic";
+
+const LocationPicker = dynamic(() => import("./LocationPicker"), {
+    ssr: false,
+    loading: () => <div className="h-[400px] bg-slate-100 rounded-xl animate-pulse flex items-center justify-center text-slate-400">Loading Map...</div>
+});
 
 type Props = {
   mode: "create" | "edit";
@@ -12,6 +18,10 @@ type Props = {
 
 export default function CctvForm({ mode, data, userRole, groups }: Props) {
   const [isPending, startTransition] = useTransition();
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number | null; lng: number | null }>({
+      lat: data?.latitude ?? null,
+      lng: data?.longitude ?? null,
+  });
 
   const action = async (formData: FormData) => {
     startTransition(async () => {
@@ -66,6 +76,19 @@ export default function CctvForm({ mode, data, userRole, groups }: Props) {
           defaultValue={data?.kecamatan}
         />
         <Input name="kota" label="Kota" defaultValue={data?.kota} />
+        
+        {/* Interactive Location Picker */}
+        <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">Pilih Titik Lokasi</label>
+            <LocationPicker 
+                latitude={selectedLocation.lat} 
+                longitude={selectedLocation.lng} 
+                onLocationSelect={(lat, lng) => setSelectedLocation({ lat, lng })} 
+            />
+            {/* Hidden Inputs for Form Submission */}
+            <input type="hidden" name="latitude" value={selectedLocation.lat ?? ""} />
+            <input type="hidden" name="longitude" value={selectedLocation.lng ?? ""} />
+        </div>
       </div>
 
       <hr className="border-gray-200" />

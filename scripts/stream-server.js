@@ -37,6 +37,14 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    if (req.url === "/api/sync") {
+        console.log("🔄 Manual sync triggered via API");
+        syncStreams();
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ status: "Syncing started" }));
+        return;
+    }
+
     const filePath = path.join(HLS_DIR, req.url);
 
     // Basic security: ensure the path is within HLS_DIR
@@ -98,8 +106,8 @@ async function startStream(cctv) {
         rtspUrl = cctv.streamUrl;
     }
 
-    if (!rtspUrl) {
-        console.error(`❌ [Stream ${cctv.id}] No valid URL found (checked ipAddress and streamUrl)`);
+    if (!rtspUrl || rtspUrl.length < 5) {
+        console.error(`❌ [Stream ${cctv.id}] Invalid or too short URL: "${rtspUrl}"`);
         return;
     }
 
@@ -115,11 +123,11 @@ async function startStream(cctv) {
         "-preset", "ultrafast",
         "-tune", "zerolatency",
         "-profile:v", "baseline",
-        "-level", "3.0",
+        "-level", "4.0",
         "-pix_fmt", "yuv420p",
         "-r", "20", // Lower framerate for stability
         "-g", "40", // Keyframe every 2 seconds
-        "-vf", "scale=-2:480",
+        "-vf", "scale=-2:720",
         "-an", // Disable audio to prevent "Queue input is backward in time" errors
         "-hls_time", "2",
         "-hls_list_size", "180", // 180 segments * 2s = 360s (6 minutes buffer) to support 5-min delay
@@ -168,7 +176,9 @@ function stopStream(id) {
 async function syncStreams() {
     try {
         // Fetch all CCTVs, ignoring isActive status as requested
-        const cctvs = await prisma.cctv.findMany({});
+        const cctvs = await prisma.cctv.findMany({
+            where: { isActive: true }
+        });
 
         console.log(`📋 Found ${cctvs.length} active CCTVs`);
 

@@ -2,8 +2,20 @@
 
 import { Edit, Trash2, Camera, Link as LinkIcon, Lock, Globe } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
-import { deleteCctv } from "@/actions/cctv";
+import { useTransition, useState } from "react";
+import { deleteCctv, toggleCCTVActive } from "@/actions/cctv";
+import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/components/ui/use-toast";
 
 type CCTV = {
   id: number;
@@ -24,22 +36,35 @@ type CCTV = {
 export default function CCTVTable({ data, canManage }: { data: CCTV[], canManage: boolean }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const handleEdit = (id: number) => {
     router.push(`/admin/cctv/${id}/edit`);
   };
 
-  const handleDelete = async (id: number) => {
-    if (confirm("Apakah Anda yakin ingin menghapus CCTV ini?")) {
-      startTransition(async () => {
-        try {
-          await deleteCctv(id);
-        } catch (error) {
-          alert("Gagal menghapus data");
-          console.error(error);
-        }
-      });
-    }
+  const confirmDelete = async () => {
+    if (deleteId === null) return;
+    
+    startTransition(async () => {
+      try {
+        await deleteCctv(deleteId);
+        toast({
+            title: "Berhasil",
+            description: "Data CCTV berhasil dihapus.",
+            variant: "default",
+        })
+      } catch (error) {
+        toast({
+            title: "Gagal",
+            description: "Gagal menghapus data CCTV.",
+            variant: "destructive",
+        })
+        console.error(error);
+      } finally {
+        setDeleteId(null);
+      }
+    });
   };
 
   const handleCopyLink = (slug: string, groupSlug?: string | null) => {
@@ -47,10 +72,14 @@ export default function CCTVTable({ data, canManage }: { data: CCTV[], canManage
     const path = groupSlug ? `/group/${groupSlug}/${slug}` : `/cctv/${slug}`;
     const url = `${window.location.origin}${path}`;
     navigator.clipboard.writeText(url);
-    alert("Share Link copied to clipboard!");
+    toast({
+        title: "Link Salin",
+        description: "Link berhasil disalin ke clipboard!",
+    })
   };
 
   return (
+    <>
     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-visible animate-in fade-in slide-in-from-bottom-2 duration-500">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 gap-4 border-b border-slate-100">
@@ -136,16 +165,43 @@ export default function CCTVTable({ data, canManage }: { data: CCTV[], canManage
                 </td>
 
                 <td className="px-6 py-4 text-center">
-                    {cctv.isActive ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 rounded-full text-[10px] font-extrabold uppercase tracking-widest border border-green-100">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                        Aktif
-                    </span>
+                    {canManage ? (
+                        <div className="flex justify-center">
+                            <Switch 
+                                checked={cctv.isActive} 
+                                onCheckedChange={(checked: boolean) => {
+                                    startTransition(async () => {
+                                        try {
+                                            await toggleCCTVActive(cctv.id, checked);
+                                            toast({
+                                                title: checked ? "CCTV Diaktifkan" : "CCTV Dinonaktifkan",
+                                                description: `Kamera ${cctv.name} status berhasil diubah.`,
+                                                variant: "default",
+                                            });
+                                        } catch (error) {
+                                            toast({
+                                                title: "Gagal Mengubah Status",
+                                                description: "Terjadi kesalahan saat menyimpan perubahan.",
+                                                variant: "destructive",
+                                            });
+                                        }
+                                    });
+                                }}
+                                disabled={isPending}
+                            />
+                        </div>
                     ) : (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-700 rounded-full text-[10px] font-extrabold uppercase tracking-widest border border-red-100">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                        Nonaktif
-                    </span>
+                        cctv.isActive ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 rounded-full text-[10px] font-extrabold uppercase tracking-widest border border-green-100">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                            Aktif
+                        </span>
+                        ) : (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-700 rounded-full text-[10px] font-extrabold uppercase tracking-widest border border-red-100">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                            Nonaktif
+                        </span>
+                        )
                     )}
                 </td>
 
@@ -173,7 +229,7 @@ export default function CCTVTable({ data, canManage }: { data: CCTV[], canManage
                             </button>
 
                             <button
-                                onClick={() => handleDelete(cctv.id)}
+                                onClick={() => setDeleteId(cctv.id)}
                                 className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all disabled:opacity-30"
                                 title="Hapus Data"
                                 disabled={isPending}
@@ -190,5 +246,23 @@ export default function CCTVTable({ data, canManage }: { data: CCTV[], canManage
         </table>
       </div>
     </div>
+
+    <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+        <AlertDialogHeader>
+            <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+            <AlertDialogDescription>
+            Tindakan ini tidak dapat dibatalkan. Data CCTV yang dihapus akan hilang permanen dari database.
+            </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 text-white">
+            {isPending ? "Menghapus..." : "Hapus CCTV"}
+            </AlertDialogAction>
+        </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

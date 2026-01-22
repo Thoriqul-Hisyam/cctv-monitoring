@@ -24,6 +24,16 @@ async function isSystemSuperAdminUser(): Promise<boolean> {
   );
 }
 
+// Helper to trigger stream server sync
+async function triggerStreamServerSync() {
+    try {
+        // Fire and forget
+        fetch("http://localhost:3001/api/sync", { method: "POST" }).catch(err => console.error("Sync trigger failed:", err));
+    } catch (e) {
+        // Ignore
+    }
+}
+
 export async function getCctvs(filter?: GetCctvsFilter) {
   const userId = await getUserId();
   const where: any = {};
@@ -154,6 +164,8 @@ export async function createCctv(formData: FormData) {
       wilayah: formData.get("wilayah") as string,
       kecamatan: formData.get("kecamatan") as string,
       kota: formData.get("kota") as string,
+      latitude: formData.get("latitude") ? parseFloat(formData.get("latitude") as string) : null,
+      longitude: formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null,
 
       ipAddress,
       port,
@@ -171,6 +183,7 @@ export async function createCctv(formData: FormData) {
     },
   });
 
+  triggerStreamServerSync();
   revalidatePath("/cctv");
   revalidatePath("/admin/cctv");
 }
@@ -259,6 +272,8 @@ export async function updateCctv(id: number, formData: FormData) {
       wilayah: formData.get("wilayah") as string,
       kecamatan: formData.get("kecamatan") as string,
       kota: formData.get("kota") as string,
+      latitude: formData.get("latitude") ? parseFloat(formData.get("latitude") as string) : null,
+      longitude: formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null,
 
       ipAddress,
       port,
@@ -274,6 +289,7 @@ export async function updateCctv(id: number, formData: FormData) {
     },
   });
 
+  triggerStreamServerSync();
   revalidatePath("/cctv");
   revalidatePath("/admin/cctv");
 }
@@ -304,6 +320,7 @@ export async function deleteCctv(id: number) {
     where: { id },
   });
 
+  triggerStreamServerSync();
   revalidatePath("/cctv");
   revalidatePath("/admin/cctv");
 }
@@ -347,7 +364,51 @@ export async function regenerateCctvSlug(id: number) {
     },
   });
 
+  triggerStreamServerSync();
   revalidatePath("/cctv");
   revalidatePath("/admin/cctv");
   revalidatePath(`/admin/cctv/${id}/edit`);
+}
+
+/* ======================
+   TOGGLE ACTIVE STATUS
+   (Admin/Operator/Owner)
+====================== */
+export async function toggleCCTVActive(id: number, isActive: boolean) {
+  const userId = await getUserId();
+  if (!userId) throw new Error("Unauthorized");
+
+  const currentCctv = await prisma.cctv.findUnique({ where: { id } });
+  if (!currentCctv) throw new Error("Not Found");
+
+  // Permission Logic: Same as Update
+  const currentUser = await getUserWithMemberships();
+  
+  const isSystemSuperAdmin = currentUser?.memberships.some(m => 
+      (m.groupSlug === 'default' || m.groupId === 1) && 
+      m.roleName.toLowerCase().includes('super')
+  ) || false;
+
+  const isOwner = currentCctv.createdById === userId;
+
+  const isCCTVGroupManager = currentCctv.groupId ? currentUser?.memberships.some(m => 
+      m.groupId === currentCctv.groupId && (m.roleName.toLowerCase().includes('admin') || m.roleName.toLowerCase().includes('operator'))
+  ) : false;
+
+  if (!isSystemSuperAdmin && !isOwner && !isCCTVGroupManager) {
+     throw new Error("Forbidden: You do not have permission to change status for this CCTV");
+  }
+
+  await prisma.cctv.update({
+    where: { id },
+    data: {
+      isActive,
+      updatedAt: new Date(),
+    },
+  });
+
+  triggerStreamServerSync();
+  revalidatePath("/cctv");
+  revalidatePath("/");
+  revalidatePath("/admin/cctv");
 }

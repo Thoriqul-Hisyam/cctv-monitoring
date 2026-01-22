@@ -137,6 +137,8 @@ model Cctv {
   kecamatan   String?
   kota        String?
   location    String?  // Combined location string
+  latitude    Float?
+  longitude   Float?
   
   // Connection Info
   ipAddress   String
