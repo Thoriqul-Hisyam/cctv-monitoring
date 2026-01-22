@@ -40,14 +40,14 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
       redirect("/admin/cctv"); // Or show unauthorized page
   }
 
-  const userRole = isSystemSuperAdmin ? "admin" : "user";
+  const userRole = (isSystemSuperAdmin || isGroupAdmin) ? "admin" : "user";
 
   // Get Available Groups
-  let groups: { id: number; name: string }[] = [];
+  let groups: { id: number; name: string; slug: string }[] = [];
   
   if (isSystemSuperAdmin) {
       // System Super Admin sees ALL groups
-      groups = await prisma.group.findMany({ select: { id: true, name: true } });
+      groups = await prisma.group.findMany({ select: { id: true, name: true, slug: true } });
   } else {
       // Group Admin only sees THEIR groups where they are admin
       // This allows them to move CCTV between THEIR groups if they have multiple
@@ -58,7 +58,7 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
       if (adminGroupIds.length > 0) {
            groups = await prisma.group.findMany({ 
                where: { id: { in: adminGroupIds } },
-               select: { id: true, name: true } 
+               select: { id: true, name: true, slug: true } 
            });
       }
   }

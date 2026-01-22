@@ -5,11 +5,19 @@ export default function CCTVCard({
   title,
   streamName,
   slug,
+  groupSlug,
 }: {
   title: string;
   streamName: string;
   slug?: string | null;
+  groupSlug?: string | null;
 }) {
+  const href = slug 
+    ? groupSlug 
+      ? `/group/${groupSlug}/${slug}`
+      : `/cctv/${slug}` 
+    : undefined;
+
   return (
     <div className="group relative bg-white border border-slate-200 rounded-3xl overflow-hidden hover:scale-[1.02] transition-all duration-300 shadow-sm hover:shadow-xl hover:border-blue-300">
       {/* Header Overlay */}
@@ -25,8 +33,8 @@ export default function CCTVCard({
             </div>
             
             {/* Share Link Icon */}
-            {slug && (
-              <Link href={`/cctv/${slug}`} className="pointer-events-auto p-1.5 bg-white/50 backdrop-blur rounded-full hover:bg-white text-slate-500 hover:text-blue-600 transition-colors">
+            {href && (
+              <Link href={href} className="pointer-events-auto p-1.5 bg-white/50 backdrop-blur rounded-full hover:bg-white text-slate-500 hover:text-blue-600 transition-colors">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
               </Link>
             )}
@@ -49,8 +57,8 @@ export default function CCTVCard({
 
       {/* Info Container */}
       <div className="p-4 bg-white">
-        {slug ? (
-            <Link href={`/cctv/${slug}`} className="block">
+        {href ? (
+            <Link href={href} className="block">
                 <h4 className="text-sm font-bold text-slate-900 line-clamp-1 group-hover:text-blue-600 transition-colors">
                 {title}
                 </h4>

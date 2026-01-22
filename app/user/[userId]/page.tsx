@@ -63,6 +63,7 @@ export default async function UserCctvPage({
                 title={cctv.name || `CCTV ${cctv.id}`}
                 streamName={String(cctv.id)}
                 slug={cctv.slug}
+                groupSlug={cctv.group?.slug}
               />
             ))}
           </div>

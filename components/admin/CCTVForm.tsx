@@ -1,13 +1,13 @@
 "use client";
 
 import { useTransition } from "react";
-import { createCctv, updateCctv } from "@/actions/cctv";
+import { createCctv, updateCctv, regenerateCctvSlug } from "@/actions/cctv";
 
 type Props = {
   mode: "create" | "edit";
   data?: any;
   userRole: string;
-  groups: { id: number; name: string }[];
+  groups: { id: number; name: string; slug: string }[];
 };
 
 export default function CctvForm({ mode, data, userRole, groups }: Props) {
@@ -21,6 +21,15 @@ export default function CctvForm({ mode, data, userRole, groups }: Props) {
         await updateCctv(data.id, formData);
       }
     });
+  };
+
+  const handleRegenerateSlug = async () => {
+    if (confirm("Apakah Anda yakin ingin me-regenerate slug? Link lama tidak akan berfungsi lagi.")) {
+        startTransition(async () => {
+             await regenerateCctvSlug(data.id);
+             alert("Slug berhasil diperbarui!");
+        });
+    }
   };
 
   return (
@@ -111,24 +120,28 @@ export default function CctvForm({ mode, data, userRole, groups }: Props) {
             🏢 Organisasi / Grup
         </h3>
         
-        <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-                Pilih Grup
-            </label>
-            <select
-                name="groupId"
-                defaultValue={data?.groupId ?? ""}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-            >
-                <option value="" disabled>-- Pilih Grup --</option>
-                {groups.map(g => (
-                    <option key={g.id} value={g.id}>{g.name}</option>
-                ))}
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-                CCTV ini akan menjadi milik grup yang dipilih.
-            </p>
-        </div>
+        {groups.length > 1 ? (
+          <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Pilih Grup
+              </label>
+              <select
+                  name="groupId"
+                  defaultValue={data?.groupId ?? ""}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+              >
+                  <option value="" disabled>-- Pilih Grup --</option>
+                  {groups.map(g => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                  ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                  CCTV ini akan menjadi milik grup yang dipilih.
+              </p>
+          </div>
+        ) : groups.length === 1 ? (
+          <input type="hidden" name="groupId" value={data?.groupId ?? groups[0].id} />
+        ) : null}
       </div>
 
       <hr className="border-gray-200" />
@@ -162,7 +175,9 @@ export default function CctvForm({ mode, data, userRole, groups }: Props) {
           </h3>
           <div className="flex gap-2">
              <div className="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 font-mono break-all">
-                {typeof window !== 'undefined' ? `${window.location.origin}/cctv/${data.slug}` : `/cctv/${data.slug}`}
+                {typeof window !== 'undefined' 
+                    ? `${window.location.origin}${data.groupId ? `/group/${groups.find(g => g.id === data.groupId)?.slug || '...'}` : '/cctv'}/${data.slug}` 
+                    : `/${data.slug}`}
              </div>
              <button
                type="button"
@@ -174,6 +189,15 @@ export default function CctvForm({ mode, data, userRole, groups }: Props) {
                className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-4 rounded-lg transition-colors text-sm"
              >
                Salin
+             </button>
+             
+             <button
+               type="button"
+               disabled={isPending}
+               onClick={handleRegenerateSlug}
+               className="bg-red-50 hover:bg-red-100 text-red-600 font-medium px-4 rounded-lg transition-colors text-sm border border-red-200"
+             >
+               Regenerate
              </button>
           </div>
           <p className="text-xs text-gray-500">

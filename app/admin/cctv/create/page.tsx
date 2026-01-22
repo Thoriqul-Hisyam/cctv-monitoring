@@ -11,18 +11,36 @@ export default async function CreatePage() {
   }
 
   // Determine User Role (Admin global check)
-  const isSuperAdmin = user.memberships.some(m => 
+  const isAnyAdmin = user.memberships.some(m => 
         m.roleName.toLowerCase().includes('admin') || 
         m.roleName.toLowerCase().includes('super')
   );
-  const userRole = isSuperAdmin ? "admin" : "user";
+  const userRole = isAnyAdmin ? "admin" : "user";
   
+  // 1. System Super Admin check for Group Selection
+  const isSystemSuperAdmin = user.memberships.some(m => 
+        (m.groupSlug === 'default' || m.groupId === 1) && 
+        m.roleName.toLowerCase().includes('super')
+  );
+
   // Get Available Groups
-  let groups: { id: number; name: string }[] = [];
-  if (isSuperAdmin) {
-      groups = await prisma.group.findMany({ select: { id: true, name: true } });
+  let groups: { id: number; name: string; slug: string }[] = [];
+  if (isSystemSuperAdmin) {
+      groups = await prisma.group.findMany({ select: { id: true, name: true, slug: true } });
   } else {
-      groups = user.memberships.map(m => ({ id: m.groupId, name: m.groupName || `Group ${m.groupId}` }));
+      // Get all groups where user has admin or operator role
+      const accessibleMemberships = user.memberships.filter(m => 
+          m.roleName.toLowerCase().includes('admin') || 
+          m.roleName.toLowerCase().includes('operator')
+      );
+      
+      const groupIds = accessibleMemberships.map(m => m.groupId);
+      if (groupIds.length > 0) {
+          groups = await prisma.group.findMany({
+              where: { id: { in: groupIds } },
+              select: { id: true, name: true, slug: true }
+          });
+      }
   }
 
   return (

@@ -1,6 +1,10 @@
 import { getCctvs } from "@/actions/cctv";
 import CCTVCard from "@/components/CCTVCard";
-import { type Cctv } from "@prisma/client";
+import { type Cctv as PrismaCctv } from "@prisma/client";
+
+type Cctv = PrismaCctv & {
+  group?: { name: string; slug: string } | null;
+};
 
 export const dynamic = "force-dynamic"; // Ensure fresh data
 
@@ -75,7 +79,7 @@ export default async function Home() {
                         key={cctv.id}
                         title={cctv.name || `CCTV ${cctv.id}`}
                         streamName={String(cctv.id)}
-                        slug={cctv.slug}
+                        groupSlug={cctv.group?.slug}
                       />
                     ))}
                   </div>

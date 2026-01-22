@@ -148,14 +148,16 @@ export default function GroupTable({ data, canCreate = false }: { data: any[], c
                         <Users size={16} />
                     </button>
 
-                    <button
-                        onClick={() => handleDelete(group.id)}
-                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all disabled:opacity-30"
-                        title="Hapus Grup"
-                        disabled={isPending || group.slug === "default"}
-                    >
-                        <Trash2 size={16} />
-                    </button>
+                    {canCreate && (
+                        <button
+                            onClick={() => handleDelete(group.id)}
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all disabled:opacity-30"
+                            title="Hapus Grup"
+                            disabled={isPending || group.slug === "default"}
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    )}
                     </div>
                 </td>
                 </tr>

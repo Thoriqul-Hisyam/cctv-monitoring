@@ -16,7 +16,7 @@ type CCTV = {
   isActive: boolean;
   isPublic: boolean;
   slug?: string | null;
-  groupId?: number | null;
+  group?: { name: string; slug: string } | null;
   createdById?: number | null;
   [key: string]: any; // Allow additional fields
 };
@@ -42,8 +42,10 @@ export default function CCTVTable({ data, canManage }: { data: CCTV[], canManage
     }
   };
 
-  const handleCopyLink = (slug: string) => {
-    const url = `${window.location.origin}/cctv/${slug}`;
+  const handleCopyLink = (slug: string, groupSlug?: string | null) => {
+    // If has group, use group url
+    const path = groupSlug ? `/group/${groupSlug}/${slug}` : `/cctv/${slug}`;
+    const url = `${window.location.origin}${path}`;
     navigator.clipboard.writeText(url);
     alert("Share Link copied to clipboard!");
   };
@@ -152,7 +154,7 @@ export default function CCTVTable({ data, canManage }: { data: CCTV[], canManage
                     
                     {cctv.slug && (
                         <button
-                            onClick={() => handleCopyLink(cctv.slug!)}
+                            onClick={() => handleCopyLink(cctv.slug!, cctv.group?.slug)}
                             className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
                             title="Copy Share Link"
                         >

@@ -14,6 +14,7 @@ export default function GroupForm({ mode, data }: GroupFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [slug, setSlug] = useState(data?.slug || "");
 
   const handleSubmit = async (formData: FormData) => {
     setError(null);
@@ -73,19 +74,35 @@ export default function GroupForm({ mode, data }: GroupFormProps) {
 
             <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-900 uppercase tracking-widest">Slug (URL)</label>
-                <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                        <Fingerprint size={16} />
+                <div className="flex gap-2">
+                    <div className="relative flex-1">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <Fingerprint size={16} />
+                        </div>
+                        <input
+                            type="text"
+                            name="slug"
+                            defaultValue={data?.slug}
+                            value={slug}
+                            onChange={(e) => setSlug(e.target.value)}
+                            required
+                            disabled={mode === 'edit'} // Slug immutable on edit
+                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm font-medium disabled:bg-slate-50 disabled:text-slate-500"
+                            placeholder="kantor-pusat"
+                        />
                     </div>
-                    <input
-                        type="text"
-                        name="slug"
-                        defaultValue={data?.slug}
-                        required
-                        disabled={mode === 'edit'} // Slug immutable on edit
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm font-medium disabled:bg-slate-50 disabled:text-slate-500"
-                        placeholder="kantor-pusat"
-                    />
+                    {mode === 'create' && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const randomSlug = Math.random().toString(36).substring(2, 10);
+                                setSlug(randomSlug);
+                            }}
+                            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-colors whitespace-nowrap"
+                        >
+                            Generate Random
+                        </button>
+                    )}
                 </div>
                 <p className="text-[10px] text-slate-400 font-medium ml-1">Unique identifier untuk URL akses.</p>
             </div>

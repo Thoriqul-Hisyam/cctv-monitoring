@@ -32,7 +32,11 @@ export async function getCctvs(filter?: GetCctvsFilter) {
   if (filter?.publicOnly) {
     where.isPublic = true;
     if (filter.userId) where.createdById = filter.userId;
-    return prisma.cctv.findMany({ where, orderBy: { createdAt: "desc" }, include: { group: { select: { name: true } } } });
+    return prisma.cctv.findMany({ where, orderBy: { createdAt: "desc" }, include: { 
+         group: { 
+            select: { name: true, slug: true } 
+         } 
+    } });
   }
 
   // Protected Access
@@ -65,7 +69,7 @@ export async function getCctvs(filter?: GetCctvsFilter) {
     orderBy: { createdAt: "desc" },
     include: {
       group: {
-         select: { name: true }
+         select: { name: true, slug: true }
       }
     }
   });
@@ -213,7 +217,7 @@ export async function updateCctv(id: number, formData: FormData) {
 
   const isPublicInput = formData.get("isPublic") === "on";
   // Only Super/Group Admin can change isPublic. Owner? Maybe. Let's allow admins.
-  const canManageVisibility = isSuper || isGroupAdmin;
+  const canManageVisibility = isSystemSuperAdmin || isCCTVGroupManager;
   const isPublic = canManageVisibility ? isPublicInput : currentCctv.isPublic;
 
   const streamUrl = buildHikvisionRtsp({
@@ -234,7 +238,7 @@ export async function updateCctv(id: number, formData: FormData) {
       // If I am Admin of Group A, I can assign to Group A.
       // Can I move from Group A to Group B? Only if I am Admin of BOTH (or Super).
       
-      const canAssignToTarget = isSuper || currentUser?.memberships.some(m => 
+      const canAssignToTarget = isSystemSuperAdmin || currentUser?.memberships.some(m => 
           m.groupId === newGroupId && m.roleName.toLowerCase().includes('admin')
       );
 
@@ -302,4 +306,48 @@ export async function deleteCctv(id: number) {
 
   revalidatePath("/cctv");
   revalidatePath("/admin/cctv");
+}
+
+/* ======================
+   REGENERATE SLUG
+   (Admin/Owner Only)
+====================== */
+export async function regenerateCctvSlug(id: number) {
+  const userId = await getUserId();
+  if (!userId) throw new Error("Unauthorized");
+
+  const currentCctv = await prisma.cctv.findUnique({ where: { id } });
+  if (!currentCctv) throw new Error("Not Found");
+
+  // Permission Logic: Same as Update
+  const currentUser = await getUserWithMemberships();
+  
+  const isSystemSuperAdmin = currentUser?.memberships.some(m => 
+      (m.groupSlug === 'default' || m.groupId === 1) && 
+      m.roleName.toLowerCase().includes('super')
+  ) || false;
+
+  const isOwner = currentCctv.createdById === userId;
+
+  const isCCTVGroupManager = currentCctv.groupId ? currentUser?.memberships.some(m => 
+      m.groupId === currentCctv.groupId && (m.roleName.toLowerCase().includes('admin') || m.roleName.toLowerCase().includes('operator'))
+  ) : false;
+
+  if (!isSystemSuperAdmin && !isOwner && !isCCTVGroupManager) {
+     throw new Error("Forbidden: You do not have permission to regenerate slug for this CCTV");
+  }
+
+  const newSlug = crypto.randomUUID();
+
+  await prisma.cctv.update({
+    where: { id },
+    data: {
+      slug: newSlug,
+      updatedAt: new Date(),
+    },
+  });
+
+  revalidatePath("/cctv");
+  revalidatePath("/admin/cctv");
+  revalidatePath(`/admin/cctv/${id}/edit`);
 }
