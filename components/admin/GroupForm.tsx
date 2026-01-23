@@ -8,7 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 type GroupFormProps = {
   mode: "create" | "edit";
-  data?: any;
+  data?: any; // Keep any for Prisma model
   isSettings?: boolean;
 };
 
@@ -17,7 +17,7 @@ function FloatingInput({
   required,
   icon: Icon,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & { label: string; icon: any }) {
+}: React.InputHTMLAttributes<HTMLInputElement> & { label: string; icon: React.ElementType }) {
   return (
     <div className="relative group">
       <div className="absolute left-4 top-[18px] text-slate-400 group-focus-within:text-indigo-600 transition-colors pointer-events-none">
@@ -61,9 +61,10 @@ export default function GroupForm({ mode, data, isSettings = false }: GroupFormP
                 router.push("/admin/groups");
                 router.refresh();
             }
-        } catch (err: any) {
-            setError(err.message);
-            toast({ variant: "destructive", title: "Gagal", description: err.message });
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Terjadi kesalahan";
+            setError(message);
+            toast({ variant: "destructive", title: "Gagal", description: message });
         }
     });
   };

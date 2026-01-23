@@ -8,7 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 type UserFormProps = {
   mode: "create" | "edit";
-  data?: any;
+  data?: any; // Keep as any for now since it's a Prisma object or partial
 };
 
 const ROLES = [
@@ -23,7 +23,7 @@ function FloatingInput({
   required,
   icon: Icon,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & { label: string; icon: any }) {
+}: React.InputHTMLAttributes<HTMLInputElement> & { label: string; icon: React.ElementType }) {
   return (
     <div className="relative group">
       <div className="absolute left-4 top-[18px] text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none">
@@ -63,9 +63,10 @@ export default function UserForm({ mode, data }: UserFormProps) {
             }
             router.push("/admin/users");
             router.refresh(); 
-        } catch (err: any) {
-            setError(err.message);
-            toast({ variant: "destructive", title: "Gagal", description: err.message });
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Terjadi kesalahan";
+            setError(message);
+            toast({ variant: "destructive", title: "Gagal", description: message });
         }
     });
   };

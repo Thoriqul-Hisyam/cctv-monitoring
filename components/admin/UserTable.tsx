@@ -35,9 +35,9 @@ type UserWithRole = {
     }[];
 };
 
-export default function UserTable({ data }: { data: any[] }) {
+export default function UserTable({ data }: { data: UserWithRole[] }) {
   // Cast data safely
-  const users = data as UserWithRole[];
+  const users = data;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();

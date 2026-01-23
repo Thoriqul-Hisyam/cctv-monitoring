@@ -31,6 +31,13 @@ const ICON_MAP: Record<string, any> = {
     "Total Users": Users,
 };
 
+const COLOR_MAP: Record<string, { bg: string, text: string, hoverBg: string }> = {
+    blue: { bg: "bg-blue-50", text: "text-blue-600", hoverBg: "group-hover:bg-blue-600" },
+    green: { bg: "bg-green-50", text: "text-green-600", hoverBg: "group-hover:bg-green-600" },
+    red: { bg: "bg-red-50", text: "text-red-600", hoverBg: "group-hover:bg-red-600" },
+    purple: { bg: "bg-purple-50", text: "text-purple-600", hoverBg: "group-hover:bg-purple-600" },
+};
+
 export default function Dashboard({ stats, activities }: { stats: StatItem[], activities: ActivityItem[] }) {
     // Relative time helper
     const getRelativeTime = (date: Date) => {
@@ -60,10 +67,11 @@ export default function Dashboard({ stats, activities }: { stats: StatItem[], ac
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         {stats.map((stat, index) => {
             const Icon = ICON_MAP[stat.label] || Activity;
+            const colors = COLOR_MAP[stat.color] || COLOR_MAP.blue;
             return (
           <div key={index} className="glass bg-white rounded-[32px] p-6 shadow-xl shadow-slate-100/50 hover:shadow-2xl transition-all group">
             <div className="flex items-center justify-between mb-4">
-              <div className={`p-3 rounded-2xl bg-${stat.color}-50 text-${stat.color}-600 group-hover:bg-${stat.color}-600 group-hover:text-white transition-all`}>
+              <div className={`p-3 rounded-2xl ${colors.bg} ${colors.text} ${colors.hoverBg} group-hover:text-white transition-all`}>
                 <Icon className="w-6 h-6" />
               </div>
               <div className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-tight px-2 py-1 rounded-lg ${stat.change.startsWith("+") ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}>
@@ -135,7 +143,7 @@ export default function Dashboard({ stats, activities }: { stats: StatItem[], ac
                 return (
                     <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-colors">
                     <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-xl bg-${activity.color}-100 flex items-center justify-center text-${activity.color}-600`}>
+                        <div className={`w-10 h-10 rounded-xl ${COLOR_MAP[activity.color]?.bg || 'bg-slate-100'} flex items-center justify-center ${COLOR_MAP[activity.color]?.text || 'text-slate-600'}`}>
                             <Icon className="w-5 h-5" />
                         </div>
                         <div>

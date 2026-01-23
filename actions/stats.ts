@@ -2,23 +2,24 @@
 
 import { prisma } from "@/lib/prisma";
 import { getUserWithMemberships } from "@/lib/auth";
+import { Prisma } from "@prisma/client";
 
 export async function getDashboardStats() {
     const user = await getUserWithMemberships();
     if (!user) throw new Error("Unauthorized");
 
     // Check permissions
-    const isSystemSuperAdmin = user.memberships.some(m => 
+    const isSystemSuperAdmin = user.memberships.some((m: any) => 
         (m.groupSlug === 'default' || m.groupId === 1) && 
         m.roleName.toLowerCase().includes('super')
     );
 
     const managedGroupIds = user.memberships
-        .filter(m => m.roleName.toLowerCase().includes('admin') || m.roleName.toLowerCase().includes('super'))
-        .map(m => m.groupId);
+        .filter((m: any) => m.roleName.toLowerCase().includes('admin') || m.roleName.toLowerCase().includes('super'))
+        .map((m: any) => m.groupId);
 
-    const cctvWhere: any = {};
-    const userWhere: any = {};
+    const cctvWhere: Prisma.CctvWhereInput = {};
+    const userWhere: Prisma.UserWhereInput = {};
 
     if (!isSystemSuperAdmin) {
         // CCTV: Only in managed groups OR created by user
@@ -55,16 +56,16 @@ export async function getRecentActivities() {
     const user = await getUserWithMemberships();
     if (!user) return [];
 
-    const isSystemSuperAdmin = user.memberships.some(m => 
+    const isSystemSuperAdmin = user.memberships.some((m: any) => 
         (m.groupSlug === 'default' || m.groupId === 1) && 
         m.roleName.toLowerCase().includes('super')
     );
 
     const managedGroupIds = user.memberships
-        .filter(m => m.roleName.toLowerCase().includes('admin') || m.roleName.toLowerCase().includes('super'))
-        .map(m => m.groupId);
+        .filter((m: any) => m.roleName.toLowerCase().includes('admin') || m.roleName.toLowerCase().includes('super'))
+        .map((m: any) => m.groupId);
 
-    const cctvWhere: any = {};
+    const cctvWhere: Prisma.CctvWhereInput = {};
     if (!isSystemSuperAdmin) {
         cctvWhere.OR = [
             { createdById: user.id },
@@ -91,21 +92,21 @@ export async function getRecentActivities() {
     ]);
 
     const activities = [
-        ...newCctvs.map(c => ({
+        ...newCctvs.map((c: any) => ({
             type: "cctv",
             title: "CCTV Baru Ditambahkan",
             description: `${c.name} • ${c.group?.name || "No Group"}`,
             time: c.createdAt,
             color: "green"
         })),
-        ...newUsers.map(u => ({
+        ...newUsers.map((u: any) => ({
             type: "user",
             title: "User Baru Terdaftar",
             description: `${u.name || u.username} • @${u.username}`,
             time: u.createdAt,
             color: "blue"
         }))
-    ].sort((a, b) => b.time.getTime() - a.time.getTime()).slice(0, 5);
+    ].sort((a: any, b: any) => b.time.getTime() - a.time.getTime()).slice(0, 5);
 
     return activities;
 }

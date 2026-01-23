@@ -30,8 +30,8 @@ type GroupWithCounts = {
     };
 };
 
-export default function GroupTable({ data, canCreate = false }: { data: any[], canCreate?: boolean }) {
-  const groups = data as GroupWithCounts[];
+export default function GroupTable({ data, canCreate = false }: { data: GroupWithCounts[], canCreate?: boolean }) {
+  const groups = data;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();

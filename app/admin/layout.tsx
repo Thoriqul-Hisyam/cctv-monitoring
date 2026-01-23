@@ -34,16 +34,12 @@ export default async function AdminLayout({
   );
 
   return (
-    <html lang="en">
-      <body className="bg-gray-100">
-        <AdminShell 
-            isSystemSuperAdmin={isSystemSuperAdmin}
-            isGroupSuperAdmin={isGroupSuperAdmin}
-            canManageUsers={canManageUsers}
-        >
-            {children}
-        </AdminShell>
-      </body>
-    </html>
+    <AdminShell 
+        isSystemSuperAdmin={isSystemSuperAdmin}
+        isGroupSuperAdmin={isGroupSuperAdmin}
+        canManageUsers={canManageUsers}
+    >
+        {children}
+    </AdminShell>
   );
 }
