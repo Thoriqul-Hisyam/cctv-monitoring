@@ -46,24 +46,12 @@ export async function getCctvs(filter?: GetCctvsFilter) {
     return prisma.cctv.findMany({ 
       where, 
       orderBy: { createdAt: "desc" }, 
-      select: {
-        id: true,
-        name: true,
-        rt: true,
-        rw: true,
-        wilayah: true,
-        kecamatan: true,
-        kota: true,
-        isActive: true,
-        isPublic: true,
-        slug: true,
-        createdById: true,
-        groupId: true,
-        group: {
-           select: { name: true, slug: true }
-        }
+      include: { 
+         group: { 
+            select: { name: true, slug: true } 
+         } 
       } 
-    });
+    }) as Promise<any[]>;
   }
 
   // Protected Access
@@ -93,24 +81,12 @@ export async function getCctvs(filter?: GetCctvsFilter) {
   return prisma.cctv.findMany({
     where,
     orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      rt: true,
-      rw: true,
-      wilayah: true,
-      kecamatan: true,
-      kota: true,
-      isActive: true,
-      isPublic: true,
-      slug: true,
-      createdById: true,
-      groupId: true,
+    include: {
       group: {
          select: { name: true, slug: true }
       }
     }
-  });
+  }) as Promise<any[]>;
 }
 
 export async function getCctvBySlug(slug: string) {
