@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createGroup, updateGroup } from "@/actions/group";
-import { Building2, AlignLeft, Fingerprint, Globe, CheckCircle } from "lucide-react";
+import { Building2, AlignLeft, Fingerprint, Globe, CheckCircle, ChevronLeft } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 type GroupFormProps = {
   mode: "create" | "edit";
@@ -11,9 +12,34 @@ type GroupFormProps = {
   isSettings?: boolean;
 };
 
+function FloatingInput({
+  label,
+  required,
+  icon: Icon,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement> & { label: string; icon: any }) {
+  return (
+    <div className="relative group">
+      <div className="absolute left-4 top-[18px] text-slate-400 group-focus-within:text-indigo-600 transition-colors pointer-events-none">
+        <Icon size={16} />
+      </div>
+      <input
+        {...props}
+        required={required}
+        placeholder=" "
+        className="peer w-full h-[56px] pl-11 pr-4 pt-4 bg-slate-50 border-2 border-transparent rounded-2xl text-slate-900 font-bold focus:bg-white focus:border-indigo-600 outline-none transition-all placeholder-transparent"
+      />
+      <label className="absolute left-11 top-2 text-[8px] font-black text-slate-400 uppercase tracking-widest transition-all peer-placeholder-shown:text-xs peer-placeholder-shown:top-[20px] peer-focus:text-[8px] peer-focus:top-2 peer-focus:text-indigo-600 pointer-events-none">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+    </div>
+  );
+}
+
 export default function GroupForm({ mode, data, isSettings = false }: GroupFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [slug, setSlug] = useState(data?.slug || "");
 
@@ -23,81 +49,79 @@ export default function GroupForm({ mode, data, isSettings = false }: GroupFormP
         try {
             if (mode === "create") {
                 await createGroup(formData);
+                toast({ title: "Berhasil", description: "Grup baru telah dibuat." });
             } else {
                 await updateGroup(data.id, formData);
+                toast({ title: "Berhasil", description: "Pengaturan grup diperbarui." });
             }
             
             if (isSettings) {
-                // If in settings, just refresh to show updated data (and maybe show success toast if we had one)
-                // We don't want to redirect to /admin/groups
                 router.refresh();
-                alert("Pengaturan berhasil disimpan"); // Temporary feedback
             } else {
                 router.push("/admin/groups");
                 router.refresh();
             }
         } catch (err: any) {
             setError(err.message);
+            toast({ variant: "destructive", title: "Gagal", description: err.message });
         }
     });
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            {mode === "create" ? "Buat Grup Baru" : "Edit Grup"}
+    <div className="max-w-xl mx-auto space-y-6 animate-slide-up">
+      {!isSettings && (
+        <button 
+            onClick={() => router.back()}
+            type="button"
+            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors"
+        >
+            <ChevronLeft size={14} />
+            Kembali ke Daftar
+        </button>
+      )}
+
+      <div className="glass bg-white rounded-[32px] shadow-2xl shadow-slate-200/50 p-6 sm:p-10 border border-white">
+        <div className="mb-10 text-center sm:text-left">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter">
+            {mode === "create" ? "Buat Grup" : "Edit Grup"}
           </h1>
-          <p className="text-slate-500 mt-2 text-sm">
-            Grup digunakan untuk mengelompokkan CCTV dan User dalam satu organisasi unit.
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-2">
+            Organisasi & Unit Kerja
           </p>
         </div>
 
         {error && (
-            <div className="p-4 mb-6 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100 flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+            <div className="p-4 mb-8 bg-red-50 text-red-600 rounded-[20px] text-[10px] font-black uppercase tracking-widest border border-red-100 flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                 {error}
             </div>
         )}
 
-        <form action={handleSubmit} className="space-y-6">
-          {/* Name & Slug */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-900 uppercase tracking-widest">Nama Grup</label>
-                <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                        <Building2 size={16} />
-                    </div>
-                    <input
-                        type="text"
-                        name="name"
-                        defaultValue={data?.name}
-                        required
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm font-medium"
-                        placeholder="Kantor Pusat"
-                    />
-                </div>
-            </div>
-
-            <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-900 uppercase tracking-widest">Slug (URL)</label>
-                <div className="flex gap-2">
-                    <div className="relative flex-1">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                            <Fingerprint size={16} />
-                        </div>
-                        <input
-                            type="text"
+        <form action={handleSubmit} className="space-y-8">
+          <div className="space-y-4">
+            <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2 opacity-50">
+                Informasi Dasar
+            </h3>
+            <div className="grid grid-cols-1 gap-4">
+                <FloatingInput
+                    label="Nama Grup / Unit"
+                    name="name"
+                    icon={Building2}
+                    defaultValue={data?.name}
+                    required
+                />
+                
+                <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1">
+                        <FloatingInput
+                            label="Slug (URL)"
                             name="slug"
-                            defaultValue={data?.slug}
+                            icon={Fingerprint}
                             value={slug}
-                            onChange={(e) => setSlug(e.target.value)}
+                            onChange={(e: any) => setSlug(e.target.value)}
                             required
-                            disabled={mode === 'edit' && data?.slug === 'default'} // Only disable if it's the default group
-                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm font-medium disabled:bg-slate-50 disabled:text-slate-500"
-                            placeholder="kantor-pusat"
+                            disabled={mode === 'edit' && data?.slug === 'default'}
                         />
                     </div>
                     {mode === 'create' && (
@@ -107,72 +131,67 @@ export default function GroupForm({ mode, data, isSettings = false }: GroupFormP
                                 const randomSlug = Math.random().toString(36).substring(2, 10);
                                 setSlug(randomSlug);
                             }}
-                            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-colors whitespace-nowrap"
+                            className="h-[56px] px-6 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
                         >
-                            Generate Random
+                            Random
                         </button>
                     )}
                 </div>
-                <p className="text-[10px] text-slate-400 font-medium ml-1">Unique identifier untuk URL akses.</p>
             </div>
           </div>
 
-          {/* Description */}
-          <div className="space-y-2">
-             <label className="text-xs font-bold text-slate-900 uppercase tracking-widest">Deskripsi</label>
-             <div className="relative">
-                <div className="absolute top-3 left-3 pointer-events-none text-slate-400">
+          <div className="space-y-4">
+              <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-widest opacity-50">
+                  Deskripsi & Publikasi
+              </h3>
+              <div className="relative group">
+                <div className="absolute left-4 top-[18px] text-slate-400 group-focus-within:text-indigo-600 transition-colors pointer-events-none">
                     <AlignLeft size={16} />
                 </div>
                 <textarea
                     name="description"
                     defaultValue={data?.description}
-                    rows={3}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm font-medium resize-none"
-                    placeholder="Deskripsi singkat tentang grup ini..."
+                    placeholder=" "
+                    rows={4}
+                    className="peer w-full pl-11 pr-4 pt-6 bg-slate-50 border-2 border-transparent rounded-2xl text-slate-900 font-bold focus:bg-white focus:border-indigo-600 outline-none transition-all placeholder-transparent resize-none"
                 />
-             </div>
+                <label className="absolute left-11 top-2 text-[8px] font-black text-slate-400 uppercase tracking-widest transition-all peer-placeholder-shown:text-xs peer-placeholder-shown:top-[20px] peer-focus:text-[8px] peer-focus:top-2 peer-focus:text-indigo-600 pointer-events-none">
+                    Deskripsi Organisasi
+                </label>
+              </div>
+
+              <label className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 cursor-pointer group hover:bg-blue-50 hover:border-blue-200 transition-all">
+                  <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-400 group-has-[:checked]:text-blue-600 group-has-[:checked]:shadow-sm">
+                        <Globe size={16} />
+                      </div>
+                      <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest group-hover:text-blue-700">Dapat Diakses Publik</span>
+                  </div>
+                  <input 
+                    type="checkbox" 
+                    name="isPublic" 
+                    value="true" 
+                    defaultChecked={data?.isPublic}
+                    className="w-5 h-5 rounded-lg border-2 border-slate-300 text-indigo-600 focus:ring-indigo-500 transition-all" 
+                  />
+              </label>
           </div>
 
-          {/* Visibility Checkbox */}
-          <label className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
-              <input 
-                type="checkbox" 
-                name="isPublic" 
-                defaultChecked={data?.isPublic}
-                className="mt-1 rou nded text-blue-600 focus:ring-blue-500" 
-              />
-              <div>
-                  <div className="flex items-center gap-2 mb-1">
-                      <Globe size={16} className="text-blue-600" />
-                      <span className="text-sm font-bold text-slate-900">Grup Publik</span>
-                  </div>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                      Jika aktif, informasi dasar grup ini mungkin dapat dilihat oleh publik. CCTV di dalamnya tetap mengikuti pengaturan masing-masing.
-                  </p>
-              </div>
-          </label>
-
-          {/* Buttons */}
-          <div className="flex gap-3 pt-4">
-             <button
-                type="button"
-                onClick={() => router.back()}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all"
-            >
-                Batal
-            </button>
+          <div className="flex pt-4">
             <button
                 type="submit"
                 disabled={isPending}
-                className="flex-[2] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 disabled:opacity-70"
+                className="w-full h-[56px] flex items-center justify-center gap-3 rounded-2xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 hover:shadow-indigo-200 disabled:opacity-50 touch-scale"
             >
                 {isPending ? (
-                    <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                        <span>Menyimpan...</span>
+                    </div>
                 ) : (
                     <>
                         <CheckCircle size={18} />
-                        Simpan Grup
+                        Simpan Pengaturan
                     </>
                 )}
             </button>

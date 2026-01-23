@@ -5,9 +5,67 @@
   --foreground: #020617;
 }
 
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  @apply antialiased min-h-screen;
+}
+
+/* Glassmorphism Classes */
+.glass {
+  @apply bg-white/70 backdrop-blur-md border border-white/20;
+}
+
+.glass-dark {
+  @apply bg-slate-900/70 backdrop-blur-md border border-slate-800/20;
+}
+
+/* Touch Feedback (Scale-down) */
+.touch-scale {
+  @apply transition-transform duration-75 active:scale-95 cursor-pointer;
+}
+
+/* Safe Area Support */
+.safe-pb {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-pt {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-mt {
+  margin-top: env(safe-area-inset-top);
+}
+
+/* Custom Scrollbar for modern look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+}
+
+/* Animation for cards appearance */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out forwards;
 }

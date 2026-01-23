@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createUser, updateUser } from "@/actions/user";
-import { User, Lock, Mail, Shield, CheckCircle } from "lucide-react";
+import { User, Lock, Mail, Shield, CheckCircle, ChevronLeft } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 type UserFormProps = {
   mode: "create" | "edit";
@@ -17,12 +18,36 @@ const ROLES = [
     { slug: "viewer", name: "Viewer", desc: "Hanya bisa melihat" },
 ];
 
+function FloatingInput({
+  label,
+  required,
+  icon: Icon,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement> & { label: string; icon: any }) {
+  return (
+    <div className="relative group">
+      <div className="absolute left-4 top-[18px] text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none">
+        <Icon size={16} />
+      </div>
+      <input
+        {...props}
+        required={required}
+        placeholder=" "
+        className="peer w-full h-[56px] pl-11 pr-4 pt-4 bg-slate-50 border-2 border-transparent rounded-2xl text-slate-900 font-bold focus:bg-white focus:border-blue-600 outline-none transition-all placeholder-transparent"
+      />
+      <label className="absolute left-11 top-2 text-[8px] font-black text-slate-400 uppercase tracking-widest transition-all peer-placeholder-shown:text-xs peer-placeholder-shown:top-[20px] peer-focus:text-[8px] peer-focus:top-2 peer-focus:text-blue-600 pointer-events-none">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+    </div>
+  );
+}
+
 export default function UserForm({ mode, data }: UserFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
 
-  // Primary Role (from first membership if edit)
   const currentRole = data?.memberships?.[0]?.role?.slug || "viewer";
 
   const handleSubmit = async (formData: FormData) => {
@@ -31,172 +56,160 @@ export default function UserForm({ mode, data }: UserFormProps) {
         try {
             if (mode === "create") {
                 await createUser(formData);
+                toast({ title: "Berhasil", description: "Pengguna baru telah didaftarkan." });
             } else {
                 await updateUser(data.id, formData);
+                toast({ title: "Berhasil", description: "Data pengguna telah diperbarui." });
             }
             router.push("/admin/users");
             router.refresh(); 
         } catch (err: any) {
             setError(err.message);
+            toast({ variant: "destructive", title: "Gagal", description: err.message });
         }
     });
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            {mode === "create" ? "Tambah User Baru" : "Edit User"}
+    <div className="max-w-xl mx-auto space-y-6 animate-slide-up">
+      <button 
+        onClick={() => router.back()}
+        type="button"
+        className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 transition-colors"
+      >
+        <ChevronLeft size={14} />
+        Kembali ke Daftar
+      </button>
+
+      <div className="glass bg-white rounded-[32px] shadow-2xl shadow-slate-200/50 p-6 sm:p-10 border border-white">
+        <div className="mb-10 text-center sm:text-left">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter">
+            {mode === "create" ? "Tambah Akun" : "Edit Profil"}
           </h1>
-          <p className="text-slate-500 mt-2 text-sm">
-            Isi formulir berikut untuk {mode === "create" ? "menambahkan" : "memperbarui"} data pengguna.
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-2">
+            Informasi Kredensial & Hak Akses
           </p>
         </div>
 
         {error && (
-            <div className="p-4 mb-6 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100 flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+            <div className="p-4 mb-8 bg-red-50 text-red-600 rounded-[20px] text-[10px] font-black uppercase tracking-widest border border-red-100 flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                 {error}
             </div>
         )}
 
-        <form action={handleSubmit} className="space-y-6">
-          {/* Username & Name */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-900 uppercase tracking-widest">Username</label>
-                <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                        <User size={16} />
-                    </div>
-                    <input
-                        type="text"
-                        name="username"
-                        defaultValue={data?.username}
-                        required
-                        disabled={mode === 'edit'}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm font-medium disabled:bg-slate-50 disabled:text-slate-500"
-                        placeholder="john_doe"
-                    />
-                </div>
-            </div>
-
-            <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-900 uppercase tracking-widest">Nama Lengkap</label>
-                <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                        <User size={16} />
-                    </div>
-                    <input
-                        type="text"
-                        name="name"
-                        defaultValue={data?.name}
-                        required
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm font-medium"
-                        placeholder="John Doe"
-                    />
-                </div>
-            </div>
-          </div>
-
-          {/* Email */}
-          <div className="space-y-2">
-             <label className="text-xs font-bold text-slate-900 uppercase tracking-widest">Email (Opsional)</label>
-             <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                    <Mail size={16} />
-                </div>
-                <input
-                    type="email"
+        <form action={handleSubmit} className="space-y-8">
+          <div className="space-y-4">
+            <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2 opacity-50">
+                Data Identitas
+            </h3>
+            <div className="grid grid-cols-1 gap-4">
+                <FloatingInput
+                    label="Username"
+                    name="username"
+                    icon={User}
+                    defaultValue={data?.username}
+                    required
+                    disabled={mode === 'edit'}
+                />
+                <FloatingInput
+                    label="Nama Lengkap"
+                    name="name"
+                    icon={User}
+                    defaultValue={data?.name}
+                    required
+                />
+                <FloatingInput
+                    label="Alamat Email"
                     name="email"
+                    type="email"
+                    icon={Mail}
                     defaultValue={data?.email}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm font-medium"
-                    placeholder="john@example.com"
                 />
-             </div>
-          </div>
-
-          {/* Role Selection */}
-          <div className="space-y-3">
-            <label className="text-xs font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                <Shield size={14} /> Pilih Role
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {ROLES.map((role) => (
-                    <label 
-                        key={role.slug} 
-                        className="relative flex items-start gap-3 p-3 rounded-xl border cursor-pointer hover:bg-slate-50 transition-all has-[:checked]:bg-blue-50 has-[:checked]:border-blue-200 has-[:checked]:ring-1 has-[:checked]:ring-blue-200"
-                    >
-                        <input 
-                            type="radio" 
-                            name="role" 
-                            value={role.slug} 
-                            defaultChecked={role.slug === currentRole}
-                            className="mt-1"
-                        />
-                        <div>
-                            <span className="block text-sm font-bold text-slate-900">{role.name}</span>
-                            <span className="block text-[10px] text-slate-500 font-medium">{role.desc}</span>
-                        </div>
-                    </label>
-                ))}
             </div>
           </div>
 
-          {/* Password */}
-          <div className="space-y-2 pt-2 border-t border-slate-100">
-             <label className="text-xs font-bold text-slate-900 uppercase tracking-widest">
-                {mode === "create" ? "Password" : "Password Baru (Kosongkan jika tidak diubah)"}
-             </label>
-             <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                    <Lock size={16} />
-                </div>
-                <input
-                    type="password"
+          <div className="space-y-4">
+            <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2 opacity-50">
+                Keamanan & Akses
+            </h3>
+            <div className="grid grid-cols-1 gap-4">
+                <FloatingInput
+                    label={mode === "create" ? "Password" : "Password Baru (Opsional)"}
                     name="password"
+                    type="password"
+                    icon={Lock}
                     required={mode === "create"}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm font-medium"
-                    placeholder="••••••••"
                 />
-             </div>
+            </div>
+            
+            <div className="space-y-3 pt-2">
+                <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                    <Shield size={14} className="text-blue-600" /> Pilih Level Akses
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {ROLES.map((role) => (
+                        <label 
+                            key={role.slug} 
+                            className="group relative flex items-start gap-3 p-4 rounded-2xl border-2 border-slate-50 cursor-pointer hover:bg-slate-50 transition-all has-[:checked]:bg-blue-600 has-[:checked]:border-blue-600 has-[:checked]:shadow-xl has-[:checked]:shadow-blue-200"
+                        >
+                            <input 
+                                type="radio" 
+                                name="role" 
+                                value={role.slug} 
+                                defaultChecked={role.slug === currentRole}
+                                className="hidden"
+                            />
+                            <div className="flex-1">
+                                <span className="block text-xs font-black uppercase tracking-tight text-slate-900 group-has-[:checked]:text-white">
+                                    {role.name}
+                                </span>
+                                <span className="block text-[8px] text-slate-400 font-bold uppercase tracking-widest group-has-[:checked]:text-blue-100 mt-1">
+                                    {role.desc}
+                                </span>
+                            </div>
+                            <div className="w-4 h-4 rounded-full border-2 border-slate-200 group-has-[:checked]:border-white group-has-[:checked]:bg-white flex items-center justify-center transition-all">
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-600 opacity-0 group-has-[:checked]:opacity-100 transition-opacity" />
+                            </div>
+                        </label>
+                    ))}
+                </div>
+            </div>
           </div>
 
-          {/* Status Checkbox (Edit only) */}
           {mode === 'edit' && (
-              <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+              <label className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 cursor-pointer group hover:bg-green-50 hover:border-green-200 transition-all">
+                  <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-400 group-has-[:checked]:text-green-600 group-has-[:checked]:shadow-sm">
+                        <CheckCircle size={16} />
+                      </div>
+                      <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest group-hover:text-green-700">Status Akun Aktif</span>
+                  </div>
                   <input 
                     type="checkbox" 
                     name="isActive" 
                     value="true" 
                     defaultChecked={data?.isActive}
-                    className="rounded text-blue-600 focus:ring-blue-500" 
+                    className="w-5 h-5 rounded-lg border-2 border-slate-300 text-blue-600 focus:ring-blue-500 transition-all" 
                   />
-                  <span className="text-sm font-bold text-slate-700">Akun Aktif</span>
               </label>
           )}
 
-          {/* Buttons */}
-          <div className="flex gap-3 pt-4">
-             <button
-                type="button"
-                onClick={() => router.back()}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all"
-            >
-                Batal
-            </button>
+          <div className="flex pt-4">
             <button
                 type="submit"
                 disabled={isPending}
-                className="flex-[2] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 disabled:opacity-70"
+                className="w-full h-[56px] flex items-center justify-center gap-3 rounded-2xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-[0.2em] hover:bg-blue-600 transition-all shadow-xl shadow-slate-200 hover:shadow-blue-200 disabled:opacity-50 touch-scale"
             >
                 {isPending ? (
-                    <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                        <span>Memproses...</span>
+                    </div>
                 ) : (
                     <>
                         <CheckCircle size={18} />
-                        Simpan Data
+                        Konfirmasi Data
                     </>
                 )}
             </button>

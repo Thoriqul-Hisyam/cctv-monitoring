@@ -35,7 +35,7 @@ export default function Sidebar({ open, isSystemSuperAdmin = false, isGroupSuper
     <aside
       className={`${
         open ? "w-64" : "w-20"
-      } transition-all duration-300 bg-slate-950 text-slate-300 flex flex-col border-r border-slate-800 shadow-2xl`}
+      } hidden lg:flex transition-all duration-300 bg-slate-950 text-slate-300 flex-col border-r border-slate-800 shadow-2xl`}
     >
       <div className="p-6 border-b border-slate-900 flex items-center gap-3 h-16">
         <div className="min-w-[32px] w-8 h-8 bg-blue-600 rounded-lg shadow-lg shadow-blue-900/20 flex items-center justify-center shrink-0">

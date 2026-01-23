@@ -4,6 +4,19 @@ import { Edit, Trash2, Building2, Users, Globe, Lock, Camera } from "lucide-reac
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { deleteGroup } from "@/actions/group";
+import { useToast } from "@/components/ui/use-toast";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useState } from "react";
 
 type GroupWithCounts = {
     id: number;
@@ -21,24 +34,37 @@ export default function GroupTable({ data, canCreate = false }: { data: any[], c
   const groups = data as GroupWithCounts[];
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const handleEdit = (id: number) => {
     router.push(`/admin/groups/${id}/edit`);
   };
 
-  const handleDelete = async (id: number) => {
-    if (confirm("Apakah Anda yakin ingin menghapus grup ini? Semua data terkait mungkin akan terpengaruh.")) {
-      startTransition(async () => {
-        try {
-          await deleteGroup(id);
-        } catch (error: any) {
-          alert(error.message || "Gagal menghapus grup");
-        }
-      });
-    }
+  const confirmDelete = async () => {
+    if (deleteId === null) return;
+    
+    startTransition(async () => {
+      try {
+        await deleteGroup(deleteId);
+        toast({
+          title: "Grup dihapus",
+          description: "Data grup telah berhasil dihapus dari sistem.",
+        });
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "Gagal menghapus grup",
+          description: error.message || "Terjadi kesalahan saat menghapus data.",
+        });
+      } finally {
+        setDeleteId(null);
+      }
+    });
   };
 
   return (
+    <>
     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-visible animate-in fade-in slide-in-from-bottom-2 duration-500">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 gap-4 border-b border-slate-100">
@@ -57,8 +83,8 @@ export default function GroupTable({ data, canCreate = false }: { data: any[], c
         )}
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
+      {/* Table & Cards */}
+      <div className="overflow-x-auto hidden lg:block">
         <table className="w-full text-sm">
             <thead className="bg-slate-50/50 border-b border-slate-100">
             <tr>
@@ -150,7 +176,7 @@ export default function GroupTable({ data, canCreate = false }: { data: any[], c
 
                     {canCreate && (
                         <button
-                            onClick={() => handleDelete(group.id)}
+                            onClick={() => setDeleteId(group.id)}
                             className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all disabled:opacity-30"
                             title="Hapus Grup"
                             disabled={isPending || group.slug === "default"}
@@ -165,6 +191,98 @@ export default function GroupTable({ data, canCreate = false }: { data: any[], c
             </tbody>
         </table>
       </div>
+
+      {/* Mobile Cards */}
+      <div className="grid grid-cols-1 gap-4 p-4 lg:hidden">
+        {groups.map((group) => (
+            <div key={group.id} className="glass rounded-2xl p-5 space-y-4 animate-slide-up bg-white">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200 transition-all">
+                            <Building2 className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-slate-900 leading-tight">{group.name}</h3>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                slug: {group.slug}
+                            </p>
+                        </div>
+                    </div>
+                    {group.isPublic ? (
+                        <div className="bg-green-50 p-1.5 rounded-lg border border-green-100">
+                            <Globe className="w-4 h-4 text-green-500" />
+                        </div>
+                    ) : (
+                        <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+                            <Lock className="w-4 h-4 text-slate-400" />
+                        </div>
+                    )}
+                </div>
+
+                {group.description && (
+                    <p className="text-xs text-slate-500 leading-relaxed font-medium line-clamp-2">{group.description}</p>
+                )}
+
+                <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 rounded-lg">
+                        <Users className="w-3 h-3 text-indigo-600" />
+                        <span>{group._count.members} Members</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 rounded-lg">
+                        <Camera className="w-3 h-3 text-blue-600" />
+                        <span>{group._count.cctvs} Cameras</span>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                    <button
+                        onClick={() => handleEdit(group.id)}
+                        className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-50 text-blue-700 rounded-xl font-bold text-[10px] uppercase tracking-wider touch-scale"
+                    >
+                        <Edit size={14} />
+                        Edit
+                    </button>
+                    <button
+                        onClick={() => router.push(`/admin/groups/${group.id}/members`)}
+                        className="flex-1 flex items-center justify-center gap-2 py-3 bg-indigo-50 text-indigo-700 rounded-xl font-bold text-[10px] uppercase tracking-wider touch-scale"
+                    >
+                        <Users size={14} />
+                        Members
+                    </button>
+                    {canCreate && (
+                        <button
+                            onClick={() => setDeleteId(group.id)}
+                            disabled={isPending || group.slug === "default"}
+                            className="p-3 bg-red-50 text-red-600 rounded-xl touch-scale disabled:opacity-30"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    )}
+                </div>
+            </div>
+        ))}
+      </div>
     </div>
+
+    <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent className="rounded-2xl">
+            <AlertDialogHeader>
+                <AlertDialogTitle className="font-black text-xl tracking-tight">Hapus Grup Organisasi?</AlertDialogTitle>
+                <AlertDialogDescription className="font-medium text-slate-500 leading-relaxed">
+                    Tindakan ini permanen. Seluruh data CCTV dan anggota di dalam grup ini mungkin akan kehilangan referensi organisasinya.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="gap-2">
+                <AlertDialogCancel className="rounded-xl font-bold">Batal</AlertDialogCancel>
+                <AlertDialogAction 
+                    onClick={confirmDelete} 
+                    className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold transition-all"
+                >
+                    {isPending ? "Menghapus..." : "Ya, Hapus Grup"}
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

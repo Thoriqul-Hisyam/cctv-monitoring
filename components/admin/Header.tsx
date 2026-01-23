@@ -12,14 +12,8 @@ export default function Header({
   return (
     <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200 px-6 py-4 flex justify-between items-center supports-[backdrop-filter]:bg-white/60">
       <div className="flex items-center gap-4">
-        <button 
-          onClick={toggleSidebar} 
-          className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-          title={sidebarOpen ? "Tutup Sidebar" : "Buka Sidebar"}
-        >
-          {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
-        <div className="hidden md:block">
+        
+        <div className="block">
             <h2 className="text-sm font-bold text-slate-800">Panel Administrasi</h2>
             <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Sistem Monitoring</p>
         </div>
