@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { buildHikvisionRtsp } from "@/lib/hikvision";
 import { getUserWithMemberships, getUserId } from "@/lib/auth";
+import { Prisma } from "@prisma/client";
 
 interface GetCctvsFilter {
   publicOnly?: boolean;
@@ -36,17 +37,33 @@ async function triggerStreamServerSync() {
 
 export async function getCctvs(filter?: GetCctvsFilter) {
   const userId = await getUserId();
-  const where: any = {};
+  const where: Prisma.CctvWhereInput = {};
 
   // Public Access
   if (filter?.publicOnly) {
     where.isPublic = true;
     if (filter.userId) where.createdById = filter.userId;
-    return prisma.cctv.findMany({ where, orderBy: { createdAt: "desc" }, include: { 
-         group: { 
-            select: { name: true, slug: true } 
-         } 
-    } });
+    return prisma.cctv.findMany({ 
+      where, 
+      orderBy: { createdAt: "desc" }, 
+      select: {
+        id: true,
+        name: true,
+        rt: true,
+        rw: true,
+        wilayah: true,
+        kecamatan: true,
+        kota: true,
+        isActive: true,
+        isPublic: true,
+        slug: true,
+        createdById: true,
+        groupId: true,
+        group: {
+           select: { name: true, slug: true }
+        }
+      } 
+    });
   }
 
   // Protected Access
@@ -55,7 +72,6 @@ export async function getCctvs(filter?: GetCctvsFilter) {
   const isSystemSuper = await isSystemSuperAdminUser();
 
   // If NOT System Super Admin, restrict to own CCTVs OR CCTVs in their groups
-  // This applies to "Organization Super Admins" too - they are restricted to their org.
   if (!isSystemSuper) {
     const user = await getUserWithMemberships();
     const groupIds = user?.memberships.map(m => m.groupId) || [];
@@ -77,7 +93,19 @@ export async function getCctvs(filter?: GetCctvsFilter) {
   return prisma.cctv.findMany({
     where,
     orderBy: { createdAt: "desc" },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      rt: true,
+      rw: true,
+      wilayah: true,
+      kecamatan: true,
+      kota: true,
+      isActive: true,
+      isPublic: true,
+      slug: true,
+      createdById: true,
+      groupId: true,
       group: {
          select: { name: true, slug: true }
       }

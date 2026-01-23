@@ -125,10 +125,13 @@ async function startStream(cctv) {
         "-profile:v", "baseline",
         "-level", "4.0",
         "-pix_fmt", "yuv420p",
-        "-r", "20", // Lower framerate for stability
-        "-g", "40", // Keyframe every 2 seconds
+        "-r", "15", // 15 fps
+        "-b:v", "512k", // Bitrate 512kbps
+        "-maxrate", "512k",
+        "-bufsize", "1024k",
+        "-g", "30", // Keyframe every 2 seconds (15fps * 2)
         "-vf", "scale=-2:720",
-        "-an", // Disable audio to prevent "Queue input is backward in time" errors
+        "-an", // Disable audio for stability at low bitrate
         "-hls_time", "2",
         "-hls_list_size", "180", // 180 segments * 2s = 360s (6 minutes buffer) to support 5-min delay
         "-hls_flags", "delete_segments+independent_segments",
