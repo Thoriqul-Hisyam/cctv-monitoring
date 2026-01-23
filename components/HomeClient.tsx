@@ -7,8 +7,14 @@ import { type Cctv as PrismaCctv } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Map, List, Grid, MonitorPlay, X } from "lucide-react";
+import { Map, List, Grid, MonitorPlay, X, LayoutList } from "lucide-react";
 import MapSidebar from "@/components/map/MapSidebar";
+import { 
+    Sheet, 
+    SheetContent, 
+    SheetHeader, 
+    SheetTitle, 
+} from "@/components/ui/sheet";
 
 // Dynamic imports
 const CCTVMap = dynamic(() => import("@/components/CCTVMap"), {
@@ -28,6 +34,7 @@ export default function HomeClient({ cctvs }: { cctvs: Cctv[] }) {
   
   // Map Selection State
   const [selectedMapCctvId, setSelectedMapCctvId] = useState<number | null>(null);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Single-Player Logic
   const [activeStreamId, setActiveStreamId] = useState<number | null>(null);
@@ -77,6 +84,7 @@ export default function HomeClient({ cctvs }: { cctvs: Cctv[] }) {
   // Handler for Sidebar Selection
   const handleSidebarSelect = (cctv: any) => {
       setSelectedMapCctvId(cctv.id);
+      setIsMobileSidebarOpen(false);
       // We rely on CCTVMap to react to this prop change and flyTo the location
   };
 
@@ -176,7 +184,31 @@ export default function HomeClient({ cctvs }: { cctvs: Cctv[] }) {
                         selectedId={selectedMapCctvId}
                         onMarkerClick={handleMapMarkerClick}
                      />
-                     {/* Mobile Overlay/Drawer could go here for list view in map mode */}
+                     {/* Mobile Overlay/Drawer for list view in map mode */}
+                     <div className="absolute bottom-30 left-1/2 -translate-x-1/2 z-20 lg:hidden">
+                        <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
+                            <button 
+                                onClick={() => setIsMobileSidebarOpen(true)}
+                                className="bg-blue-600/90 text-white backdrop-blur-md px-6 py-3 rounded-full shadow-2xl border border-blue-400/20 active:scale-95 transition-all flex items-center gap-2 ring-4 ring-blue-600/10"
+                            >
+                                <LayoutList size={20} />
+                                <span className="text-sm font-bold tracking-tight">Daftar Lokasi</span>
+                            </button>
+                            <SheetContent side="bottom" className="p-0 h-[80vh] rounded-t-3xl border-t-0 bg-transparent flex flex-col">
+                                <SheetHeader className="sr-only">
+                                    <SheetTitle>Daftar Lokasi CCTV</SheetTitle>
+                                </SheetHeader>
+                                <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto my-3 shrink-0" />
+                                <div className="flex-1 bg-white rounded-t-3xl overflow-hidden">
+                                    <MapSidebar 
+                                        cctvs={cctvs} 
+                                        onSelect={handleSidebarSelect}
+                                        selectedId={selectedMapCctvId}
+                                    />
+                                </div>
+                            </SheetContent>
+                        </Sheet>
+                     </div>
                 </div>
              </div>
         )}
